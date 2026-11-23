@@ -79,8 +79,10 @@ CHAT_DEMO_ALLOWED_HOSTS=chat.example.com,.example.com pnpm dev
 
 仓库自带 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)，在仓库 Settings → Pages 里把 Source 选成 **GitHub Actions**，然后：
 
-- 推一个 `v*` 的 tag，或
+- 推送到 `main`，或
 - 在 Actions 页面手动运行 `Deploy to GitHub Pages`
+
+注意：`github-pages` 环境默认只允许默认分支部署，用 tag 触发会被保护规则拒绝。
 
 CI 会用 Node 22 + pnpm 构建并发布 `dist/`。Pages 上是纯前端演示：API Key 各自填在浏览器里，**同步功能不可用**（需要你自己的同步服务）。
 

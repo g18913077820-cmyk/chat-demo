@@ -84,7 +84,7 @@ Docker, systemd, HTTPS reverse proxy, tokens, and storage alternatives are docum
 ## Deployment
 
 - Static hosting: `pnpm build` and serve `dist/`; see [docs/deploy.md](docs/deploy.md) for nginx and systemd examples
-- GitHub Pages: the bundled [workflow](.github/workflows/pages.yml) publishes a demo (UI only — sync needs your own server)
+- GitHub Pages: the bundled [workflow](.github/workflows/pages.yml) publishes a demo on every push to `main` (UI only — sync needs your own server)
 
 ## Data and privacy
 

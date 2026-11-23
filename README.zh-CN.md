@@ -84,7 +84,7 @@ Docker、systemd、HTTPS 反代、令牌和替代存储方案见 [server/README.
 ## 部署
 
 - 静态托管：`pnpm build` 后把 `dist/` 交给任何静态服务器，[docs/deploy.md](docs/deploy.md) 有 nginx / systemd 示例
-- GitHub Pages：仓库自带 [workflow](.github/workflows/pages.yml)，推 tag 或在 Actions 里手动触发即可发布演示站（同步功能不可用，纯前端演示）
+- GitHub Pages：仓库自带 [workflow](.github/workflows/pages.yml)，推送到 `main` 或手动触发即可发布演示站（同步功能不可用，纯前端演示）
 
 ## 数据与隐私
 
