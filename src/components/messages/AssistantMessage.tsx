@@ -2,6 +2,7 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import {
+  IconChevronDownOutline14,
   IconNoteOutline16,
   IconRefreshOutline16,
   IconStarFill16,
@@ -34,6 +35,7 @@ import { NoteDialog } from './NoteDialog.js'
 import { ExportRangeDialog } from './ExportRangeDialog.js'
 import { downloadMarkdown, roundsToMarkdown, toRounds } from '../../services/chat/exportRounds.js'
 import { useChatStore } from '../../services/chat/store.js'
+import { useAnswerView } from '../../services/chat/answerView.js'
 import { showToast } from '../base/toastState.js'
 import { Menu } from '../base/Menu.js'
 import { IconEllipsisOutline16 } from '../base/icons.js'
@@ -51,8 +53,6 @@ const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 export const AssistantMessage = memo(function AssistantMessage({
   sessionId,
   message,
-  round,
-  roundAt,
   isLast,
   streaming,
   busy,
@@ -61,9 +61,6 @@ export const AssistantMessage = memo(function AssistantMessage({
 }: {
   sessionId: string
   message: AssistantMessageType
-  /** 第几轮（从 1 开始）与该轮提问时间 */
-  round?: number
-  roundAt?: number
   isLast: boolean
   streaming: boolean
   busy: boolean
@@ -84,6 +81,10 @@ export const AssistantMessage = memo(function AssistantMessage({
   const [tagOpen, setTagOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [rangeOpen, setRangeOpen] = useState(false)
+  const override = useAnswerView((state) => state.overrides[message.id])
+  const mode = useAnswerView((state) => state.mode)
+  // 流式输出强制展开；否则按手动覆盖 → 全局模式 → 默认（最后一轮展开）
+  const expanded = streaming || override === true || (override !== false && (mode ?? isLast))
   const session = useChatStore((state) => state.sessionCache[sessionId])
   const rounds = session ? toRounds(session) : []
   const currentRound = rounds.find((item) => item.assistant?.id === message.id)?.index ?? 0
@@ -116,14 +117,28 @@ export const AssistantMessage = memo(function AssistantMessage({
         />
       )}
       {answer ? (
-        <Markdown
-          className="ds-assistant-message-main-content"
-          content={answer.markdown}
-          loading={streaming}
-          cacheKey={message.id}
-          disableLink={false}
-          sources={view.sources}
-        />
+        expanded ? (
+          <Markdown
+            className="ds-assistant-message-main-content"
+            content={answer.markdown}
+            loading={streaming}
+            cacheKey={message.id}
+            disableLink={false}
+            sources={view.sources}
+          />
+        ) : (
+          <button
+            type="button"
+            className={styles.answerToggle}
+            onClick={() => useAnswerView.getState().toggle(message.id, true)}
+          >
+            <span className={styles.answerLabel}>{t('answer')}</span>
+            <span className={styles.answerCount}>
+              {t('charCount', { count: answer.markdown.length })}
+            </span>
+            <IconChevronDownOutline14 />
+          </button>
+        )
       ) : null}
       {waiting ? (
         <div className={styles.waiting}>
@@ -191,20 +206,24 @@ export const AssistantMessage = memo(function AssistantMessage({
         <div className={styles.bottom}>
           <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
           <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
-            {copyText ? <CopyButton text={copyText} /> : null}
-            {responseText && !refused ? (
-              <ReadAloudButton messageId={message.id} text={responseText} />
+            {expanded ? (
+              <>
+                {copyText ? <CopyButton text={copyText} /> : null}
+                {responseText && !refused ? (
+                  <ReadAloudButton messageId={message.id} text={responseText} />
+                ) : null}
+                <IconButton
+                  icon={<IconRefreshOutline16 />}
+                  tooltip={t('regenerate')}
+                  tooltipPlacement="bottom"
+                  disabled={busy || refused}
+                  onClick={() => {
+                    stopReadAloud()
+                    regenerateReply(sessionId, message.id)
+                  }}
+                />
+              </>
             ) : null}
-            <IconButton
-              icon={<IconRefreshOutline16 />}
-              tooltip={t('regenerate')}
-              tooltipPlacement="bottom"
-              disabled={busy || refused}
-              onClick={() => {
-                stopReadAloud()
-                regenerateReply(sessionId, message.id)
-              }}
-            />
             <IconButton
               icon={message.starred ? <IconStarFill16 /> : <IconStarOutline16 />}
               tooltip={t(message.starred ? 'unfavorite' : 'favorite')}
@@ -278,11 +297,9 @@ export const AssistantMessage = memo(function AssistantMessage({
           ) : null}
         </div>
       )}
-      {round ? (
-        <div className={styles.meta} title={formatFullTime(roundAt ?? 0) ?? undefined}>
-          {t('roundLabel', { count: round })}
-          <span className={styles.metaDot}>·</span>
-          {formatRoundTime(roundAt ?? 0)}
+      {expanded ? (
+        <div className={styles.meta} title={formatFullTime(message.createdAt) ?? undefined}>
+          {t('answeredAt', { time: formatRoundTime(message.createdAt) ?? '' })}
         </div>
       ) : null}
       {message.note || (message.tags?.length ?? 0) > 0 ? (

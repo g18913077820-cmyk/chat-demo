@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import { IconEditOutline16 } from '../base/icons.js'
+import { formatFullTime, formatRoundTime } from '../../utils/format.js'
 import { getFileViewType, isImage } from '../../services/attachments.js'
 import { editMessage, retryUpload } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
@@ -25,12 +26,17 @@ export const UserMessage = memo(function UserMessage({
   retryUploadId,
   isFirst,
   isLast,
+  round,
+  askedAt,
   busy,
   versions,
   onSelectVersion,
 }: {
   sessionId: string
   message: UserMessageType
+  /** 第几轮（从 1 开始）与该轮提问时间 */
+  round?: number
+  askedAt?: number
   /** 回答因补传附件失败可重试时为该回答 id */
   retryUploadId: string | null
   isFirst: boolean
@@ -119,6 +125,13 @@ export const UserMessage = memo(function UserMessage({
         <>
           {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
           <div className={styles.bottom}>
+            {round ? (
+              <span className={styles.meta} title={formatFullTime(askedAt ?? message.createdAt) ?? undefined}>
+                {t('roundLabel', { count: round })}
+                <span className={styles.metaDot}>·</span>
+                {formatRoundTime(askedAt ?? message.createdAt)}
+              </span>
+            ) : null}
             <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
               {message.content ? <CopyButton text={message.content} /> : null}
               <IconButton

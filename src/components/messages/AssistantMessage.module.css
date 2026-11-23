@@ -185,3 +185,44 @@
   margin: 0 5px;
   opacity: 0.6;
 }
+
+/* 折叠状态的回答入口 */
+.answerToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0 2px;
+  padding: 8px 12px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
+    color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:hover {
+    color: var(--dsw-alias-label-secondary);
+    border-color: var(--dsw-alias-border-l3);
+  }
+
+  svg {
+    margin-left: auto;
+    opacity: 0.7;
+  }
+}
+
+.answerLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 500;
+}
+
+.answerCount {
+  color: var(--dsw-alias-label-tertiary);
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { searchChats, type ChatSearchMatch } from '../../services/chat/search.js'
 import { selectSession } from '../../services/chat/store.js'
+import { useAnswerView } from '../../services/chat/answerView.js'
 import { IconCloseOutline16, IconSearchOutline16 } from '../base/icons.js'
 import { closeMobileSider } from './mobileSiderState.js'
 import styles from './Sider.module.css'
@@ -80,6 +81,10 @@ const scrollToMessage = (messageId: string) => {
 
 const openMatch = (search: ReturnType<typeof useChatSearch>, match: ChatSearchMatch) => {
   selectSession(match.sessionId)
+  // 命中的回答默认是折叠的，跳转前先展开
+  if (match.messageId) {
+    useAnswerView.getState().expand(match.messageId)
+  }
   closeMobileSider()
   search.clear()
   if (match.messageId) {

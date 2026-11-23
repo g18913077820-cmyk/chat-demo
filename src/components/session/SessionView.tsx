@@ -3,6 +3,8 @@ import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
 import type { Session } from '../../services/chat/types.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
+import { IconChevronDownOutline14 } from '../base/icons.js'
+import { useAnswerView } from '../../services/chat/answerView.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MobileHeader } from './MobileHeader.js'
 import styles from './SessionView.module.css'
@@ -20,6 +22,7 @@ export const SessionView = ({
   const t = useTranslate()
   const isMobile = useIsMobile()
   const title = session.title || t('untitledChat')
+  const expandedAll = useAnswerView((state) => state.mode) === true
   return (
     <div className={styles.view}>
       {isMobile ? (
@@ -29,6 +32,14 @@ export const SessionView = ({
           <div className={clsx(styles.title, siderCollapsed && styles.withCollapsedSider)}>
             {title}
           </div>
+          <button
+            type="button"
+            className={styles.expandAll}
+            onClick={() => useAnswerView.getState().setMode(!expandedAll)}
+          >
+            {t(expandedAll ? 'collapseAll' : 'expandAll')}
+            <IconChevronDownOutline14 />
+          </button>
         </div>
       )}
       <MessageList

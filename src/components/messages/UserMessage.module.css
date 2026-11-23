@@ -102,3 +102,18 @@
   gap: 8px;
   margin: 6px 10px 10px;
 }
+
+/* 提问行的轮次与时间 */
+.meta {
+  margin-right: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.metaDot {
+  margin: 0 5px;
+  opacity: 0.6;
+}

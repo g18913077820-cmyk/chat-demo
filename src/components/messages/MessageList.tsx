@@ -11,6 +11,7 @@ import type { Session } from '../../services/chat/types.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
 import { MessageRail, type RoundInfo } from './MessageRail.js'
+import { useAnswerView } from '../../services/chat/answerView.js'
 import { IconStarFill16, IconTagOutline16 } from '../base/icons.js'
 import { Menu } from '../base/Menu.js'
 import { useTranslate } from '../../i18n/index.js'
@@ -147,6 +148,11 @@ export const MessageList = ({
 
   useEffect(closeSearchPanel, [session.id, lastMessageId])
 
+  // 切换会话时回到默认折叠策略
+  useEffect(() => {
+    useAnswerView.getState().reset()
+  }, [session.id])
+
   const selectVersion = useCallback(
     (messageId: string, anchorTop: number) => {
       if (streaming) {
@@ -216,6 +222,8 @@ export const MessageList = ({
                     key={message.id}
                     sessionId={session.id}
                     message={message}
+                    round={roundMeta[index]?.round}
+                    askedAt={roundMeta[index]?.askedAt}
                     retryUploadId={uploadRetryId}
                     isFirst={index === 0}
                     isLast={index === lastIndex || index === lastIndex - 1}
@@ -228,8 +236,6 @@ export const MessageList = ({
                     key={message.id}
                     sessionId={session.id}
                     message={message}
-                    round={roundMeta[index]?.round}
-                    roundAt={roundMeta[index]?.askedAt}
                     isLast={index === lastIndex}
                     streaming={streaming && index === lastIndex}
                     busy={streaming}
