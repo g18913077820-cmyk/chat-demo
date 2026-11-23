@@ -31,6 +31,12 @@ import { ReadAloudButton } from './ReadAloudButton.js'
 import { CopyButton } from './CopyButton.js'
 import { TagDialog } from './TagDialog.js'
 import { NoteDialog } from './NoteDialog.js'
+import { ExportRangeDialog } from './ExportRangeDialog.js'
+import { downloadMarkdown, roundsToMarkdown, toRounds } from '../../services/chat/exportRounds.js'
+import { useChatStore } from '../../services/chat/store.js'
+import { showToast } from '../base/toastState.js'
+import { Menu } from '../base/Menu.js'
+import { IconEllipsisOutline16 } from '../base/icons.js'
 import { ReplyArea } from './ReplyArea.js'
 import { useReplyView } from './useReplyView.js'
 import {
@@ -77,6 +83,26 @@ export const AssistantMessage = memo(function AssistantMessage({
   const copyText = responseText || notice?.text
   const [tagOpen, setTagOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  const [rangeOpen, setRangeOpen] = useState(false)
+  const session = useChatStore((state) => state.sessionCache[sessionId])
+  const rounds = session ? toRounds(session) : []
+  const currentRound = rounds.find((item) => item.assistant?.id === message.id)?.index ?? 0
+  const exportRange = (start: number, end: number) => {
+    if (!session) {
+      return
+    }
+    const slice = rounds.filter((item) => item.index >= start && item.index <= end)
+    if (slice.length === 0) {
+      return
+    }
+    const markdown = roundsToMarkdown(session, slice, {
+      starred: message.starred,
+      tags: message.tags,
+      note: message.note,
+    })
+    downloadMarkdown(session.title, markdown, start === end ? `${start}` : `${start}-${end}`)
+    showToast({ key: 'exported' })
+  }
   const waiting = streaming && view.steps.length === 0 && !view.answer && !message.thinking
   const summaryEntry = `${message.id}-summary`
   return (
@@ -163,13 +189,6 @@ export const AssistantMessage = memo(function AssistantMessage({
       ) : null}
       {streaming ? null : (
         <div className={styles.bottom}>
-          {round ? (
-            <span className={styles.meta} title={formatFullTime(roundAt ?? 0) ?? undefined}>
-              {t('roundLabel', { count: round })}
-              <span className={styles.metaDot}>·</span>
-              {formatRoundTime(roundAt ?? 0)}
-            </span>
-          ) : null}
           <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
           <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
             {copyText ? <CopyButton text={copyText} /> : null}
@@ -210,6 +229,38 @@ export const AssistantMessage = memo(function AssistantMessage({
               disabled={busy}
               onClick={() => setNoteOpen(true)}
             />
+            <Menu
+              options={[
+                {
+                  key: 'round',
+                  label: t('exportRound'),
+                  icon: <IconNoteOutline16 />,
+                  onSelect: () => exportRange(currentRound, currentRound || 1),
+                },
+                {
+                  key: 'recent',
+                  label: t('exportRecent'),
+                  icon: <IconNoteOutline16 />,
+                  onSelect: () => exportRange(Math.max(1, currentRound - 4), currentRound || 1),
+                },
+                {
+                  key: 'custom',
+                  label: t('exportRange'),
+                  icon: <IconNoteOutline16 />,
+                  onSelect: () => setRangeOpen(true),
+                },
+              ]}
+            >
+              {({ toggle }) => (
+                <IconButton
+                  icon={<IconEllipsisOutline16 />}
+                  tooltip={t('more')}
+                  tooltipPlacement="bottom"
+                  disabled={busy}
+                  onClick={toggle}
+                />
+              )}
+            </Menu>
           </div>
           {isLast && canContinueReply(message) ? (
             <Button
@@ -227,11 +278,30 @@ export const AssistantMessage = memo(function AssistantMessage({
           ) : null}
         </div>
       )}
-      {message.note ? (
-        <div className={styles.note} onClick={() => setNoteOpen(true)}>
-          <span className={styles.noteLabel}>{t('note')}</span>
-          <span className={styles.noteText}>{message.note}</span>
+      {round ? (
+        <div className={styles.meta} title={formatFullTime(roundAt ?? 0) ?? undefined}>
+          {t('roundLabel', { count: round })}
+          <span className={styles.metaDot}>·</span>
+          {formatRoundTime(roundAt ?? 0)}
         </div>
+      ) : null}
+      {message.note || (message.tags?.length ?? 0) > 0 ? (
+        <div className={styles.marks}>
+          {message.note ? <span className={styles.noteLine}>{t('note')}：{message.note}</span> : null}
+          {message.tags?.map((tag) => (
+            <span key={tag} className={styles.tagLine}>
+              #{tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {rangeOpen ? (
+        <ExportRangeDialog
+          total={rounds.length}
+          defaultRange={currentRound > 0 ? String(currentRound) : '1'}
+          onClose={() => setRangeOpen(false)}
+          onExport={exportRange}
+        />
       ) : null}
       {noteOpen ? (
         <NoteDialog
