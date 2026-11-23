@@ -1,0 +1,20 @@
+/*
+ * 自托管字体：霞鹜文楷（LXGW WenKai）、寒蝉拙楷（ChillZhuoKai），均为 SIL OFL 1.1
+ * 字体按 unicode-range 切片，浏览器只下载页面实际用到的字形块。
+ * 默认不生效，body[data-font] 为具体字体名时才切换到该字族。
+ */
+@import '../assets/fonts/lxgw-wenkai/lxgwwenkai-regular.css';
+@import '../assets/fonts/lxgw-wenkai/lxgwwenkai-bold.css';
+@import '../assets/fonts/chill-zhuokai/chillzhuokai.css';
+
+body[data-font='wenkai'] {
+  --dsw-font-family:
+    'LXGW WenKai', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body[data-font='zhuokai'] {
+  --dsw-font-family:
+    'ChillZhuoKai', 'LXGW WenKai', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}

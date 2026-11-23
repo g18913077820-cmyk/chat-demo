@@ -45,3 +45,31 @@
     height: 14px;
   }
 }
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.body {
+  position: relative;
+}
+
+/* 折叠时裁掉超出的行；具体高度由脚本按实际行高计算后写在 style 上 */
+.clipped {
+  overflow: hidden;
+}
+
+/* 底部渐隐，提示下面还有内容 */
+.fade {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 56px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--dsw-alias-markdown-code-block));
+  border-bottom-right-radius: var(--dsl-code-block-border-radius);
+  border-bottom-left-radius: var(--dsl-code-block-border-radius);
+}

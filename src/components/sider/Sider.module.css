@@ -120,14 +120,17 @@
 .bottom {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
   height: 64px;
 }
 
 .settings {
   display: flex;
+  flex: 1;
   align-items: center;
   box-sizing: border-box;
-  width: 100%;
+  min-width: 0;
   margin-block: auto;
   padding: 6px 2px 6px 6px;
   border: none;
@@ -244,4 +247,175 @@
     font-size: 16px;
     line-height: 22px;
   }
+}
+
+.searchBox {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 36px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 100px;
+  background: var(--dsw-specific-sidebar-fill);
+  transition: border-color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:focus-within {
+    border-color: var(--dsw-alias-brand-primary);
+  }
+}
+
+.searchIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+
+  &::placeholder {
+    color: var(--dsw-alias-label-tertiary);
+  }
+
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+.searchClear {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.searchResults {
+  height: 100%;
+  margin: 0 -2px;
+  padding: 0 2px 8px;
+  overflow-y: auto;
+  scrollbar-color: var(--scroll-color) transparent;
+}
+
+.searchItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
+  }
+}
+
+.searchItemTitle {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--dsw-alias-label-primary);
+}
+
+.searchItemSnippet {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  word-break: break-word;
+}
+
+.searchHighlight {
+  background: none;
+  color: var(--dsw-alias-brand-primary);
+  font-weight: 600;
+}
+
+.searchHint {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 会话筛选：贴在设置按钮右侧 */
+.bottomFilters {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color var(--ds-transition-duration) var(--ds-ease-in-out),
+    border-color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    color: var(--dsw-alias-label-secondary);
+    border-color: var(--dsw-alias-border-l3);
+  }
+}
+
+.filterChipActive {
+  color: var(--dsw-alias-brand-primary);
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.empty {
+  padding: 24px 10px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
 }

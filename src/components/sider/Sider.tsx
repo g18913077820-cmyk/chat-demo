@@ -1,16 +1,24 @@
 import clsx from 'clsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconPanelLeftOutline16, IconSettingsOutline16, NewChatIcon } from '../base/icons.js'
+import {
+  IconPanelLeftOutline16,
+  IconSettingsOutline16,
+  IconStarFill16,
+  IconTagOutline16,
+  NewChatIcon,
+} from '../base/icons.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
 import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
 import type { SessionSummary } from '../../services/chat/types.js'
 import { Button } from '../base/Button.js'
+import { Menu } from '../base/Menu.js'
 import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
 import { showToast } from '../base/toastState.js'
 import { openSettings } from '../settings/settingsDialogState.js'
+import { ChatSearchBox, ChatSearchResults, useChatSearch } from './ChatSearch.js'
 import { closeMobileSider, useMobileSider } from './mobileSiderState.js'
 import { SessionItem } from './SessionItem.js'
 import styles from './Sider.module.css'
@@ -21,9 +29,33 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const sessions = useChatStore((state) => state.sessions)
   const activeId = useChatStore((state) => state.activeId)
   const [now, setNow] = useState(Date.now)
-  const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
+  const [onlyStarred, setOnlyStarred] = useState(false)
+  const [tagFilter, setTagFilter] = useState('')
+  // 侧边栏标签筛选：汇总所有会话用到的标签
+  const tagOptions = useMemo(() => {
+    const tags = new Set<string>()
+    for (const session of sessions) {
+      session.tags?.forEach((tag) => tags.add(tag))
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b))
+  }, [sessions])
+  const visible = useMemo(
+    () =>
+      sessions.filter(
+        (session) =>
+          (!onlyStarred || session.starred) &&
+          (!tagFilter || session.tags?.includes(tagFilter))
+      ),
+    [sessions, onlyStarred, tagFilter]
+  )
+  const pinnedSessions = useMemo(() => visible.filter((session) => session.pinned), [visible])
+  const groups = useMemo(
+    () => groupSessions(visible.filter((session) => !session.pinned), now, t),
+    [visible, now, t]
+  )
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+  const search = useChatSearch()
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
@@ -74,22 +106,43 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         </span>
         {t('newChat')}
       </button>
+      <ChatSearchBox search={search} />
       <div className={styles.listWrap}>
-        <div className={styles.list}>
-          {groups.map((group) => (
-            <div key={group.key} className={styles.section}>
-              <div className={styles.sectionHeader}>{group.label}</div>
-              {group.sessions.map((session) => (
-                <SessionItem
-                  key={session.id}
-                  session={session}
-                  active={session.id === activeId}
-                  onDelete={() => setDeleting(session)}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+        {search.keyword ? (
+          <ChatSearchResults search={search} />
+        ) : (
+          <div className={styles.list}>
+            {pinnedSessions.length > 0 ? (
+              <div className={styles.section}>
+                <div className={styles.sectionHeader}>{t('pinnedGroup')}</div>
+                {pinnedSessions.map((session) => (
+                  <SessionItem
+                    key={session.id}
+                    session={session}
+                    active={session.id === activeId}
+                    onDelete={() => setDeleting(session)}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {groups.map((group) => (
+              <div key={group.key} className={styles.section}>
+                <div className={styles.sectionHeader}>{group.label}</div>
+                {group.sessions.map((session) => (
+                  <SessionItem
+                    key={session.id}
+                    session={session}
+                    active={session.id === activeId}
+                    onDelete={() => setDeleting(session)}
+                  />
+                ))}
+              </div>
+            ))}
+            {visible.length === 0 ? (
+              <div className={styles.empty}>{t('searchChatsEmpty')}</div>
+            ) : null}
+          </div>
+        )}
       </div>
       <div className={styles.bottom}>
         <button type="button" className={styles.settings} onClick={() => openSettings('general')}>
@@ -98,6 +151,42 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           </span>
           <span className={styles.settingsLabel}>{t('settings')}</span>
         </button>
+        <div className={styles.bottomFilters}>
+          <button
+            type="button"
+            className={clsx(styles.filterChip, onlyStarred && styles.filterChipActive)}
+            aria-pressed={onlyStarred}
+            aria-label={t('favoritesOnly')}
+            onClick={() => setOnlyStarred((value) => !value)}
+          >
+            <IconStarFill16 />
+            {t('favorite')}
+          </button>
+          {tagOptions.length ? (
+            <Menu
+              options={[
+                { key: '__all', label: t('allTags'), icon: null, onSelect: () => setTagFilter('') },
+                ...tagOptions.map((tag) => ({
+                  key: tag,
+                  label: tag,
+                  icon: null,
+                  onSelect: () => setTagFilter(tag),
+                })),
+              ]}
+            >
+              {({ toggle }) => (
+                <button
+                  type="button"
+                  className={clsx(styles.filterChip, tagFilter && styles.filterChipActive)}
+                  onClick={toggle}
+                >
+                  <IconTagOutline16 />
+                  {tagFilter || t('editTags')}
+                </button>
+              )}
+            </Menu>
+          ) : null}
+        </div>
       </div>
       {deleting ? (
         <Modal

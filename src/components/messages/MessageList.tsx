@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import {
@@ -9,6 +10,10 @@ import { selectMessageVersion } from '../../services/chat/store.js'
 import type { Session } from '../../services/chat/types.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
+import { MessageRail, type RoundInfo } from './MessageRail.js'
+import { IconStarFill16, IconTagOutline16 } from '../base/icons.js'
+import { Menu } from '../base/Menu.js'
+import { useTranslate } from '../../i18n/index.js'
 import { ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
 import type { Message } from '../../services/chat/types.js'
@@ -43,12 +48,53 @@ export const MessageList = ({
   footer: React.ReactNode
 }) => {
   const isMobile = useIsMobile()
+  const t = useTranslate()
+  /** 单一会话内的轮次筛选：只看收藏 / 按标签 */
+  const [onlyStarred, setOnlyStarred] = useState(false)
+  const [tagFilter, setTagFilter] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const stickyRef = useRef(true)
   const scrollTopRef = useRef(0)
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   const messages = getVisibleMessages(session)
+  // 每条消息所属的轮次与该轮提问时间，用于回答底部展示
+  const roundMeta = useMemo(() => {
+    let round = 0
+    let askedAt = 0
+    return messages.map((message) => {
+      if (message.role === 'user') {
+        round += 1
+        askedAt = message.createdAt
+      }
+      return { round, askedAt }
+    })
+  }, [messages])
+  // 每一轮 = 一条提问 + 它后面的回答；收藏/标签取自回答，用于刻度条标记
+  const rounds = useMemo<RoundInfo[]>(
+    () =>
+      messages.flatMap((message, index) => {
+        if (message.role !== 'user') {
+          return []
+        }
+        const reply = messages.slice(index + 1).find((item) => item.role === 'assistant')
+        const text = message.content.replace(/\s+/g, ' ').trim()
+        const question =
+          text.length > 80
+            ? `${text.slice(0, 80)}…`
+            : text || message.files.map((file) => file.name).join('、')
+        return [
+          {
+            id: message.id,
+            question,
+            starred: reply?.role === 'assistant' ? reply.starred : undefined,
+            tags: reply?.role === 'assistant' ? reply.tags : undefined,
+            note: reply?.role === 'assistant' ? reply.note : undefined,
+          },
+        ]
+      }),
+    [messages]
+  )
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
@@ -141,40 +187,125 @@ export const MessageList = ({
 
   const lastIndex = messages.length - 1
   const uploadRetryId = getUploadRetryId(messages, streaming)
+  const filtered = onlyStarred || tagFilter !== ''
+  const conversationTags = useMemo(() => {
+    const tags = new Set<string>()
+    for (const round of rounds) {
+      round.tags?.forEach((tag) => tags.add(tag))
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b))
+  }, [rounds])
+  const visibleRounds = useMemo(
+    () =>
+      rounds.filter(
+        (round) =>
+          (!onlyStarred || round.starred) && (!tagFilter || round.tags?.includes(tagFilter))
+      ),
+    [rounds, onlyStarred, tagFilter]
+  )
+
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
-        <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
-          <div ref={contentRef} className={styles.column}>
-            {messages.map((message, index) =>
-              message.role === 'user' ? (
-                <UserMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  retryUploadId={uploadRetryId}
-                  isFirst={index === 0}
-                  isLast={index === lastIndex || index === lastIndex - 1}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              ) : (
-                <AssistantMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  isLast={index === lastIndex}
-                  streaming={streaming && index === lastIndex}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              )
-            )}
+      <div className={styles.wrap}>
+        <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
+          <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
+            <div ref={contentRef} className={styles.column}>
+              {messages.map((message, index) =>
+                message.role === 'user' ? (
+                  <UserMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    retryUploadId={uploadRetryId}
+                    isFirst={index === 0}
+                    isLast={index === lastIndex || index === lastIndex - 1}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                ) : (
+                  <AssistantMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    round={roundMeta[index]?.round}
+                    roundAt={roundMeta[index]?.askedAt}
+                    isLast={index === lastIndex}
+                    streaming={streaming && index === lastIndex}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                )
+              )}
+            </div>
           </div>
+          {footer}
         </div>
-        {footer}
+        <MessageRail
+          scrollRef={scrollRef}
+          contentRef={contentRef}
+          rounds={visibleRounds}
+          mobile={isMobile}
+          filtered={filtered}
+          filterControls={
+            isMobile
+              ? {
+                  onlyStarred,
+                  tagFilter,
+                  tags: conversationTags,
+                  onToggleStar: () => setOnlyStarred((value) => !value),
+                  onSelectTag: setTagFilter,
+                }
+              : undefined
+          }
+        />
+        {isMobile ? null : (
+          <div className={styles.railTools}>
+            <button
+              type="button"
+              className={clsx(styles.railTool, onlyStarred && styles.railToolActive)}
+              aria-label={t('roundFavoritesOnly')}
+              aria-pressed={onlyStarred}
+              title={t('roundFavoritesOnly')}
+              onClick={() => setOnlyStarred((value) => !value)}
+            >
+              <IconStarFill16 />
+            </button>
+            {conversationTags.length > 0 ? (
+              <Menu
+                options={[
+                  {
+                    key: '__all',
+                    label: t('allTags'),
+                    icon: null,
+                    onSelect: () => setTagFilter(''),
+                  },
+                  ...conversationTags.map((tag) => ({
+                    key: tag,
+                    label: tag,
+                    icon: null,
+                    onSelect: () => setTagFilter(tag),
+                  })),
+                ]}
+              >
+                {({ toggle }) => (
+                  <button
+                    type="button"
+                    className={clsx(styles.railTool, tagFilter && styles.railToolActive)}
+                    aria-label={
+                      tagFilter ? `${t('roundFilterByTag')}: ${tagFilter}` : t('roundFilterByTag')
+                    }
+                    title={tagFilter ? `${t('roundFilterByTag')}: ${tagFilter}` : t('roundFilterByTag')}
+                    onClick={toggle}
+                  >
+                    <IconTagOutline16 />
+                  </button>
+                )}
+              </Menu>
+            ) : null}
+          </div>
+        )}
       </div>
     </ScrollToBottomContext.Provider>
   )

@@ -1,75 +1,104 @@
-# chat-demo
+# chat-demo（增强版）
 
 [English](README.md) | 简体中文
 
-基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
+基于 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 改造的静态聊天客户端。没有应用后端：浏览器直连 DeepSeek API，数据存在本地 IndexedDB。
 
-点击 [在线体验](https://deepseek-ai.github.io/chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
+这个分支补了三件最影响日常使用的事：**多设备同步**、**长会话的阅读与检索**、**更舒服的界面**。
 
-## 运行
+![主界面](docs/screenshots/main.png)
 
-准备 Node.js 22.12+ 和 pnpm：
+## 相比原版新增
+
+### 1. 局域网 / 自建服务器多设备同步
+
+手机和电脑填同一个地址就能互相同步会话和图片，不用再手动导出 ZIP。
+
+- 自带零依赖的同步服务（`server/sync-server.mjs`）：一个 Node 进程、一个目录就是全部
+- **按会话增量同步**：改哪个会话只传哪个，附件只传一次
+- 会话级最后写入优先；删除会同步墓碑；导入 ZIP 后自动把新增会话推给其他设备
+- 支持访问令牌，可以只跑在局域网，也可以反代到公网域名
+- 不想用自带服务也行：[server/README.md](server/README.md) 写清了只有几个接口的 HTTP 协议，换成 S3、对象存储或用任何语言重写都可以
+
+### 2. 长会话阅读增强
+
+| 功能 | 说明 |
+| --- | --- |
+| 轮次刻度尺 | 右侧每轮一个刻度，悬停看提问，点击跳转；底部有「回到文末」 |
+| 收藏 / 标签 / 备注 | 会话和单条回答都能标记；刻度尺左侧把标签和备注显示成金色提纲 |
+| 轮次导航 | 刻度尺上每 3 轮标注序号；手机端有上一轮 / 下一轮按钮 |
+| 筛选 | 会话列表按「只看收藏」或标签筛选；单个会话内也能只看收藏过的轮次 |
+| 会话置顶 | 重要会话固定在列表顶部，不随时间下沉 |
+| 全文搜索 | 侧边栏搜标题和消息正文，命中词高亮，点结果直接跳到那条消息 |
+| 代码块折叠 | 超过 10 行默认收起，按钮展开；复制始终是完整代码 |
+| 思考折叠 | 历史消息的思考过程默认收起；新回答思考结束自动收起 |
+
+<table>
+<tr>
+<td><img src="docs/screenshots/search.png" alt="搜索" width="430"></td>
+<td><img src="docs/screenshots/mobile.png" alt="手机端" width="250"></td>
+</tr>
+</table>
+
+### 3. 界面
+
+- 内置 6 个色系主题：宣纸微黄、青竹听风、月照空山、茶烟袅袅、樱花初见、深林夜语
+- 内置两套中文字体：霞鹜文楷、寒蝉拙楷（都是 OFL 协议，离线可用）
+- 每条回答下方常显轮次编号与提问时间；恢复上次滚动位置
+
+![主题](docs/screenshots/themes.png)
+
+## 快速开始
+
+需要 Node.js 22.12+ 和 pnpm：
 
 ```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
+git clone <本仓库>
 cd chat-demo
 pnpm install
-pnpm dev
+pnpm dev            # http://localhost:8090
 ```
 
-打开 http://localhost:8090 。
-
-生成静态产物：
+打包成静态站点：
 
 ```sh
-pnpm build
+pnpm build          # 产物在 dist/，可直接用 nginx 托管
 ```
 
-产物位于 `dist/`，可部署到静态服务器，也可直接打开 `dist/index.html`。直接打开时，浏览器和 API 服务需允许 `file://` 页面的存储与跨域请求。
+首次打开在设置里填 DeepSeek API Key。Key 只存在浏览器 localStorage，请求直接从浏览器发往 `https://api.deepseek.com`。
 
-## 功能
+## 多设备同步
 
-- 多会话、自动标题、重命名与删除；编辑提问、重新生成和切换消息分支。
-- 流式回答、深度思考、智能搜索、链接阅读与来源引用；支持停止和符合条件的继续生成。
-- 附件上传、粘贴与拖拽，语音输入和回复朗读；移动端录音时输入框首行显示实时频谱。
-- Markdown、代码高亮、KaTeX 公式和 Mermaid 图表。
-- 简体中文与英文、浅色与深色主题、移动端布局、位置设置、历史导入导出。
-
-## 数据
-
-API Key 和设置保存在浏览器 localStorage，会话及附件原件保存在 IndexedDB，本地数据按浏览器用户配置和站点源（origin）隔离。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
-
-设置中的历史导入导出使用 ZIP 格式。导入会在确认并校验成功后替换全部本地会话和附件；导出包含会话与本地可用的图片原件，不包含 API Key、设置或非图片附件原件。格式与保留范围见[历史导入导出](src/services/chat/history/README.md)。
-
-设置 → 数据管理 → 删除所有对话，会在确认后清空全部本地会话、附件原件和未发送的草稿，停止正在生成的回复并回到新对话。API Key 和其他设置保留，已上传到 API 服务的文件不受影响。
-
-## 开发
-
-| 命令          | 用途                |
-| ------------- | ------------------- |
-| `pnpm dev`    | 启动开发服务器      |
-| `pnpm build`  | 构建到 `dist/`      |
-| `pnpm type`   | TypeScript 类型检查 |
-| `pnpm lint`   | oxlint 检查         |
-| `pnpm format` | oxfmt 格式化        |
-
-[rspack.config.ts](rspack.config.ts) 默认连接 `https://api.deepseek.com`。`createConfig({ apiOrigin, devServer })` 支持自定义 API 地址和开发服务器代理。
-
-聊天默认使用 `deepseek-flash`，通过 Anthropic 兼容的 Messages / Files API 通信；语音使用 ASR / TTS 接口。请求使用搜索、链接阅读、标题和 `latest_reminder` 等扩展，接入服务需支持相应能力。附件实际支持的格式以服务端校验为准。
-
-```text
-src/
-  app/                 应用布局、主题与全局样式
-  components/          聊天、设置、Markdown 等界面组件
-  i18n/                中英文文案
-  services/
-    api/               API 请求、SSE 与协议类型
-    chat/              会话、消息分支、本地存储与历史导入导出
-    markdown/          Markdown 解析、代码高亮与图表
-    speech/            录音与朗读
-  utils/               通用工具
+```sh
+# 在一台常开的机器上（Node 22+，零依赖）
+pnpm sync           # 默认监听 0.0.0.0:8787，数据在 server/.sync-data/
 ```
+
+然后在每台设备的 **设置 → 数据管理 → 多设备同步** 里填：
+
+- 同步地址：`http://<服务器 IP>:8787`（或你反代出来的域名）
+- 访问令牌：服务端设置了 `SYNC_TOKEN` 时填同一个值
+
+Docker、systemd、HTTPS 反代、令牌和替代存储方案见 [server/README.md](server/README.md)。
+
+## 部署
+
+- 静态托管：`pnpm build` 后把 `dist/` 交给任何静态服务器，[docs/deploy.md](docs/deploy.md) 有 nginx / systemd 示例
+- GitHub Pages：仓库自带 [workflow](.github/workflows/pages.yml)，推 tag 或在 Actions 里手动触发即可发布演示站（同步功能不可用，纯前端演示）
+
+## 数据与隐私
+
+- 会话和附件存在浏览器 IndexedDB，API Key 存在 localStorage，不经过第三方服务器
+- 只有开启同步后，会话内容才会发到你自己搭的同步服务；服务端就是一个目录，备份打包即可
+- 语音输入 / 朗读需要 HTTPS（安全上下文），HTTP 下浏览器会禁用麦克风
 
 ## 许可证
 
-[MIT](LICENSE)。构建会将许可证复制到 `dist/LICENSE`，分发时请一并保留；第三方依赖遵循各自的许可证。
+代码沿用上游的 [MIT](LICENSE)。
+
+内置字体的授权：
+
+- 霞鹜文楷（LXGW WenKai）：SIL OFL 1.1，见 `src/assets/fonts/lxgw-wenkai/OFL.txt`
+- 寒蝉拙楷（ChillZhuoKai）：SIL OFL 1.1，见 `src/assets/fonts/chill-zhuokai/OFL.txt`
+
+原项目版权归 DeepSeek 所有，本分支的改动同样以 MIT 发布。

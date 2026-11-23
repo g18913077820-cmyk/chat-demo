@@ -96,7 +96,9 @@ export const useChatStore = create<ChatState>(() => ({
 const { getState: get, setState: set } = useChatStore
 
 const sortSessions = (sessions: SessionSummary[]) =>
-  [...sessions].sort((a, b) => b.updatedAt - a.updatedAt)
+  [...sessions].sort(
+    (a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.updatedAt - a.updatedAt
+  )
 
 const getSession = (id: string) => {
   const cache = get().sessionCache
@@ -109,7 +111,12 @@ const getStreamController = (id: string) => {
 }
 
 const sameSummary = (a: SessionSummary, b: SessionSummary) =>
-  a.title === b.title && a.createdAt === b.createdAt && a.updatedAt === b.updatedAt
+  a.title === b.title &&
+  a.createdAt === b.createdAt &&
+  a.updatedAt === b.updatedAt &&
+  a.starred === b.starred &&
+  a.pinned === b.pinned &&
+  (a.tags ?? []).join('\u0000') === (b.tags ?? []).join('\u0000')
 
 const sessionAccess = new Map<string, number>()
 const unsavedSessions = new Set<string>()
@@ -197,6 +204,13 @@ const persist = (sessionId: string) => {
     void db
       .saveSession(session, files)
       .then(() => {
+        // 落库成功后才推送，避免把未保存的内容同步出去。
+        void import('../sync/engine.js').then((sync) => {
+          sync.queueSession(sessionId)
+          for (const file of files ?? []) {
+            sync.queueFile(file.id)
+          }
+        })
         if (epoch !== historyEpoch || !getSession(sessionId)) {
           return
         }
@@ -446,13 +460,50 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
   }
 }
 
+/**
+ * 增量导入：保留现有对话，只并入归档里尚未存在的会话与附件。
+ * 与 replaceHistory 不同，不重置历史 epoch，也不清空详情缓存和草稿。
+ */
+export const mergeHistory = async (
+  write: () => Promise<void>
+): Promise<{ imported: number; skipped: number; ids: string[]; fileIds: string[] }> => {
+  if (get().importingHistory) {
+    throw new Error('History import is already in progress')
+  }
+  set({ importingHistory: true })
+  try {
+    await db.clearStaging()
+    let result: Awaited<ReturnType<typeof db.mergeStaging>>
+    try {
+      await write()
+      result = await db.mergeStaging()
+    } catch (error) {
+      await db.clearStaging().catch(db.reportStorageError('clear unfinished history merge'))
+      throw error
+    }
+    const { summaries, skipped, fileIds } = result
+    set((state) => ({
+      ready: true,
+      initError: false,
+      sessions: sortSessions([...state.sessions, ...summaries]),
+    }))
+    return {
+      imported: summaries.length,
+      skipped,
+      ids: summaries.map((summary) => summary.id),
+      fileIds,
+    }
+  } finally {
+    set({ importingHistory: false })
+  }
+}
+
 export const newChat = () => {
   if (!get().importingHistory) {
     set({ activeId: null })
     trimSessionCache()
   }
 }
-
 export const selectSession = (id: string) => {
   if (!get().importingHistory && get().sessions.some((session) => session.id === id)) {
     touchSession(id)
@@ -480,7 +531,140 @@ export const renameSession = (id: string, title: string) => {
       ),
     }))
     void db.renameSession(id, title).catch(db.reportStorageError('rename session'))
+    void import('../sync/engine.js').then((sync) => sync.queueSession(id))
   }
+}
+
+const syncQueue = () => import('../sync/engine.js')
+
+/** 标签标准化：去空白、去重、限制数量与长度，避免脏数据写进会话。 */
+export const normalizeTags = (tags: string[]): string[] => [
+  ...new Set(
+    tags
+      .map((tag) => tag.trim().slice(0, 24))
+      .filter(Boolean)
+      .slice(0, 8)
+  ),
+]
+
+/** 收藏/取消收藏会话；未加载的会话只改元数据，不必为一次标记读取整段历史。 */
+export const toggleSessionStar = (id: string) => {
+  if (get().importingHistory || deletingSessions.has(id)) {
+    return
+  }
+  const session = getSession(id)
+  if (session) {
+    updateSession(id, (current) => ({ ...current, starred: !current.starred }))
+    persist(id)
+    return
+  }
+  const summary = get().sessions.find((item) => item.id === id)
+  if (!summary) {
+    return
+  }
+  const starred = !summary.starred
+  set((state) => ({
+    sessions: state.sessions.map((item) => (item.id === id ? { ...item, starred } : item)),
+  }))
+  void db.patchSession(id, { starred }).catch(db.reportStorageError('star session'))
+  void syncQueue().then((sync) => sync.queueSession(id))
+}
+
+/** 置顶/取消置顶会话。 */
+export const toggleSessionPin = (id: string) => {
+  if (get().importingHistory || deletingSessions.has(id)) {
+    return
+  }
+  const session = getSession(id)
+  if (session) {
+    updateSession(id, (current) => ({ ...current, pinned: !current.pinned }))
+    persist(id)
+    return
+  }
+  const summary = get().sessions.find((item) => item.id === id)
+  if (!summary) {
+    return
+  }
+  const pinned = !summary.pinned
+  set((state) => ({
+    sessions: sortSessions(
+      state.sessions.map((item) => (item.id === id ? { ...item, pinned } : item))
+    ),
+  }))
+  void db.patchSession(id, { pinned }).catch(db.reportStorageError('pin session'))
+  void syncQueue().then((sync) => sync.queueSession(id))
+}
+
+/** 设置会话标签；空数组表示清除。 */
+export const setSessionTags = (id: string, tags: string[]) => {
+  if (get().importingHistory || deletingSessions.has(id)) {
+    return
+  }
+  const value = normalizeTags(tags)
+  const session = getSession(id)
+  if (session) {
+    updateSession(id, (current) => ({ ...current, tags: value }))
+    persist(id)
+    return
+  }
+  if (!get().sessions.some((item) => item.id === id)) {
+    return
+  }
+  set((state) => ({
+    sessions: state.sessions.map((item) => (item.id === id ? { ...item, tags: value } : item)),
+  }))
+  void db.patchSession(id, { tags: value }).catch(db.reportStorageError('tag session'))
+  void syncQueue().then((sync) => sync.queueSession(id))
+}
+
+/** 收藏/取消收藏某条回答。 */
+export const toggleMessageStar = (sessionId: string, messageId: string) => {
+  if (get().importingHistory) {
+    return
+  }
+  updateSession(sessionId, (session) => ({
+    ...session,
+    messages: session.messages.map((message) =>
+      message.id === messageId && message.role === 'assistant'
+        ? { ...message, starred: !message.starred }
+        : message
+    ),
+  }))
+  persist(sessionId)
+}
+
+/** 设置某条回答的备注；空字符串表示清除。 */
+export const setMessageNote = (sessionId: string, messageId: string, note: string) => {
+  if (get().importingHistory) {
+    return
+  }
+  const value = note.trim().slice(0, 500)
+  updateSession(sessionId, (session) => ({
+    ...session,
+    messages: session.messages.map((message) =>
+      message.id === messageId && message.role === 'assistant'
+        ? { ...message, note: value || undefined }
+        : message
+    ),
+  }))
+  persist(sessionId)
+}
+
+/** 设置某条回答的标签；空数组表示清除。 */
+export const setMessageTags = (sessionId: string, messageId: string, tags: string[]) => {
+  if (get().importingHistory) {
+    return
+  }
+  const value = normalizeTags(tags)
+  updateSession(sessionId, (session) => ({
+    ...session,
+    messages: session.messages.map((message) =>
+      message.id === messageId && message.role === 'assistant'
+        ? { ...message, tags: value }
+        : message
+    ),
+  }))
+  persist(sessionId)
 }
 
 /**
@@ -507,6 +691,7 @@ const removeSessionData = async (id: string): Promise<boolean> => {
       return false
     }
     await db.deleteSession(id)
+    void import('../sync/engine.js').then((sync) => sync.queueDelete(id))
     if (epoch !== historyEpoch) {
       return true
     }
@@ -546,6 +731,42 @@ const removeSessionData = async (id: string): Promise<boolean> => {
 }
 
 export const stopReply = (sessionId: string) => getStreamController(sessionId)?.abort()
+
+/**
+ * 同步拉取后应用远端会话：覆盖列表元数据与已加载的详情缓存，删除远端已删除的会话。
+ * 正在生成回复的会话保持原样，由同步模块在流结束后补写。
+ */
+export const applyRemoteSessions = (upserts: Session[], deletions: string[]) => {
+  const removed = new Set(deletions)
+  set((state) => {
+    const applied = upserts.filter((session) => !Object.hasOwn(state.streaming, session.id))
+    const cache = Object.fromEntries(
+      Object.entries(state.sessionCache).filter(([id]) => !removed.has(id))
+    )
+    for (const session of applied) {
+      if (Object.hasOwn(cache, session.id)) {
+        cache[session.id] = session
+      }
+    }
+    const sessions = state.sessions.filter((summary) => !removed.has(summary.id))
+    for (const session of applied) {
+      const summary = toSessionSummary(session)
+      const index = sessions.findIndex((item) => item.id === session.id)
+      if (index >= 0) {
+        sessions[index] = summary
+      } else {
+        sessions.push(summary)
+      }
+    }
+    return {
+      sessions: sortSessions(sessions),
+      sessionCache: cache,
+      activeId:
+        state.activeId !== null && removed.has(state.activeId) ? null : state.activeId,
+    }
+  })
+}
+
 
 /**
  * 提交指定会话的最新草稿；null 表示新建会话。

@@ -5,6 +5,11 @@ import { defineConfig } from '@rspack/cli'
 import { rspack, type Configuration } from '@rspack/core'
 
 const dev = process.env.NODE_ENV !== 'production'
+/** 开发服务器允许的主机名，逗号分隔；默认只放行本机。用域名反代时设置 CHAT_DEMO_ALLOWED_HOSTS */
+const allowedHosts = (process.env.CHAT_DEMO_ALLOWED_HOSTS ?? '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean)
 const targets = ['chrome >= 105', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
 const root = path.dirname(fileURLToPath(import.meta.url))
 const { version } = JSON.parse(
@@ -86,7 +91,13 @@ export const createConfig = ({
     }),
   ],
   performance: { hints: false },
-  devServer: { port: 8090, ...devServer },
+  devServer: {
+    port: 8091,
+    host: '0.0.0.0',
+    // 默认的 'auto' 只放行 localhost 和纯 IP，用域名访问会返回 403
+    allowedHosts: allowedHosts.length > 0 ? allowedHosts : ['localhost'],
+    ...devServer,
+  },
 })
 
 // eslint-disable-next-line import/no-default-export

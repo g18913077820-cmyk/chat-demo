@@ -1,6 +1,6 @@
 import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
-import { replaceHistory, useChatStore } from './store.js'
+import { mergeHistory, replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'
 
 export { BackupError } from './history/errors.js'
@@ -47,11 +47,29 @@ export const importHistory = (file: File): Promise<number> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(file)
-    return replaceHistory(() => importArchive(file))
+    const count = await replaceHistory(() => importArchive(file))
+    // 本地历史已被整体替换，同步服务端也要镜像成同一份数据。
+    await (await import('../sync/engine.js')).syncReplaceAll()
+    return count
+  })
+
+/**
+ * 增量导入：只添加归档里本地没有的会话与附件，已有数据保持不变。
+ * 导入成功后把新增部分推送到同步服务，其他设备无需再手动导入。
+ */
+export const mergeHistoryArchive = (file: File): Promise<{ imported: number; skipped: number }> =>
+  enqueueBackup(async () => {
+    const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
+    await checkArchiveFormat(file)
+    const { imported, skipped, ids, fileIds } = await mergeHistory(() => importArchive(file))
+    const sync = await import('../sync/engine.js')
+    await sync.pushSessions(ids, fileIds)
+    return { imported, skipped }
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */
 export const clearHistory = (): Promise<void> =>
   enqueueBackup(async () => {
     await replaceHistory(async () => {})
+    await (await import('../sync/engine.js')).syncReplaceAll()
   })

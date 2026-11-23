@@ -123,6 +123,28 @@ export const renameSession = async (id: string, title: string): Promise<void> =>
   ])
 }
 
+/** 局部修改未加载的会话元数据（收藏、标签），同时更新摘要。 */
+export const patchSession = async (id: string, patch: Partial<Session>): Promise<void> => {
+  const tx = (await getDB()).transaction(['sessions', 'sessionSummaries'], 'readwrite')
+  await Promise.all([
+    (async () => {
+      try {
+        const sessions = tx.objectStore('sessions')
+        const session = await sessions.get(id)
+        if (session) {
+          Object.assign(session, patch)
+          await sessions.put(session)
+          await tx.objectStore('sessionSummaries').put(storedSummary(session))
+        }
+      } catch (error) {
+        abortTransaction(tx)
+        throw error
+      }
+    })(),
+    tx.done,
+  ])
+}
+
 /** 删除会话，仅清理已无会话引用的本地原件；远端文件不删。 */
 export const deleteSession = async (sessionId: string): Promise<void> => {
   const tx = (await getDB()).transaction(['sessions', 'sessionSummaries', 'files'], 'readwrite')
@@ -156,6 +178,10 @@ export const saveFiles = (files: StoredFile[]): Promise<void> => putFiles('files
 
 export const loadFile = async (id: string): Promise<Blob | undefined> =>
   (await (await getDB()).get('files', id))?.blob
+
+/** 同步时判断附件是否已在本地，避免为了检查而读取整个 Blob。 */
+export const hasFile = async (id: string): Promise<boolean> =>
+  (await (await getDB()).count('files', id)) > 0
 
 /** 清空导入暂存：开始导入前清除上次中断（如关闭页面）遗留的数据，导入失败后清除本次写入。 */
 export const clearStaging = async (): Promise<void> => {
@@ -242,6 +268,70 @@ export const commitStaging = async (): Promise<SessionSummary[]> => {
   await Promise.all([move('sessionsStaging', 'sessions'), move('filesStaging', 'files'), tx.done])
   // 直接返回本次提交的列表，调用方无需在替换成功后再发起可能失败的读取。
   return summaries
+}
+
+/**
+ * 增量导入：把暂存里的会话和附件并入正式数据，已存在的会话保持原样。
+ * 同一事务内逐条判断是否重复，事务失败时整体回滚，正式数据不变。
+ */
+export const mergeStaging = async (): Promise<{
+  summaries: SessionSummary[]
+  skipped: number
+  fileIds: string[]
+}> => {
+  const summaries: SessionSummary[] = []
+  const fileIds = new Set<string>()
+  let skipped = 0
+  const tx = (await getDB()).transaction(
+    ['sessions', 'sessionSummaries', 'files', 'sessionsStaging', 'filesStaging'],
+    'readwrite'
+  )
+  try {
+    const sessions = tx.objectStore('sessions')
+    const summariesStore = tx.objectStore('sessionSummaries')
+    for (
+      let cursor = await tx.objectStore('sessionsStaging').openCursor();
+      cursor;
+      cursor = await cursor.continue()
+    ) {
+      const session = cursor.value as Session
+      // 已存在的会话以本地为准，不覆盖用户正在使用的数据。
+      if ((await sessions.getKey(session.id)) !== undefined) {
+        skipped += 1
+        continue
+      }
+      await sessions.put(session)
+      const summary = storedSummary(session)
+      await summariesStore.put(summary)
+      summaries.push(toSessionSummary(summary))
+      for (const message of session.messages) {
+        if (message.role === 'user') {
+          for (const file of message.files) {
+            fileIds.add(file.id)
+          }
+        }
+      }
+    }
+    const files = tx.objectStore('files')
+    for (
+      let cursor = await tx.objectStore('filesStaging').openCursor();
+      cursor;
+      cursor = await cursor.continue()
+    ) {
+      const file = cursor.value
+      // 同一附件 ID 内容一致，本地已有就不再写一次。
+      if ((await files.getKey(file.id)) === undefined) {
+        await files.put(file)
+      }
+    }
+    await tx.objectStore('sessionsStaging').clear()
+    await tx.objectStore('filesStaging').clear()
+  } catch (error) {
+    abortTransaction(tx)
+    throw error
+  }
+  await tx.done
+  return { summaries, skipped, fileIds: [...fileIds] }
 }
 
 /** 本地存储失败不打断对话，只在控制台留痕 */

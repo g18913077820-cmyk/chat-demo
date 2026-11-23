@@ -14,17 +14,20 @@ import {
   clearHistory,
   exportHistory,
   importHistory,
+  mergeHistoryArchive,
 } from '../../services/chat/backup.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   isChineseBrowser,
+  setFontFamily,
   setLocale,
   setLocation,
   setThemePreference,
   setTtsVoice,
   useSettings,
+  type FontFamily,
   type ThemePreference,
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
@@ -33,6 +36,7 @@ import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { SyncSettings } from './SyncSettings.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -97,6 +101,7 @@ const SettingsContent = () => {
           {section === 'general' ? (
             <>
               <ThemeSetting />
+              <FontSetting />
               <LocaleSetting />
               <TtsVoiceSetting />
               <LocationSetting />
@@ -104,6 +109,7 @@ const SettingsContent = () => {
           ) : (
             <>
               <ApiKeyField editor={apiKeyEditor} />
+              <SyncSettings />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
@@ -269,6 +275,44 @@ const LocationSetting = () => {
   )
 }
 
+const fontOptions: { value: FontFamily; label: TranslationKey }[] = [
+  { value: 'system', label: 'settingsFontSystem' },
+  { value: 'wenkai', label: 'settingsFontWenkai' },
+  { value: 'zhuokai', label: 'settingsFontZhuokai' },
+]
+
+/** 字体：系统默认或内置的霞鹜文楷，切换即时生效，离线可用。 */
+const FontSetting = () => {
+  const t = useTranslate()
+  const fontFamily = useSettings((state) => state.fontFamily)
+  const label = t('settingsFont')
+  return (
+    <div className={styles.theme}>
+      {label}
+      <div role="radiogroup" aria-label={label} className={styles.fontOptions}>
+        {fontOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={fontFamily === option.value}
+            className={clsx(
+              styles.fontOption,
+              option.value === 'wenkai' && styles.fontOptionWenkai,
+              option.value === 'zhuokai' && styles.fontOptionZhuokai,
+              fontFamily === option.value && styles.fontOptionSelected
+            )}
+            onClick={() => setFontFamily(option.value)}
+          >
+            {t(option.label)}
+          </button>
+        ))}
+      </div>
+      <div className={styles.description}>{t('settingsFontHint')}</div>
+    </div>
+  )
+}
+
 const LocaleSetting = () => {
   const t = useTranslate()
   const locale = useSettings((state) => state.locale)
@@ -314,7 +358,7 @@ const TtsVoiceSetting = () => {
   )
 }
 
-/** 覆盖导入的二次确认，叠在设置弹窗上 */
+/** 导入方式的二次确认，叠在设置弹窗上：默认合并，覆盖需要用户主动选择。 */
 const ImportConfirm = ({
   historyImport,
 }: {
@@ -331,8 +375,11 @@ const ImportConfirm = ({
           <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
             {t('cancel')}
           </Button>
-          <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
-            {t('historyImportConfirm')}
+          <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm('replace')}>
+            {t('historyImportReplace')}
+          </Button>
+          <Button variant="primary" size="m" onClick={() => void historyImport.confirm('merge')}>
+            {t('historyImportMerge')}
           </Button>
         </>
       }
@@ -360,8 +407,23 @@ const themeOptions: { value: ThemePreference; label: TranslationKey; icon: React
   },
 ]
 
+/** 六个自定义色系；色块用主题的纸色 + 主色预览 */
+const paletteOptions: {
+  value: ThemePreference
+  label: TranslationKey
+  paper: string
+  accent: string
+}[] = [
+  { value: 'xuanzhi', label: 'themeXuanzhi', paper: '#f7f1e3', accent: '#a3712f' },
+  { value: 'qingzhu', label: 'themeQingzhu', paper: '#f3f7f1', accent: '#3f7a4f' },
+  { value: 'yueshan', label: 'themeYueshan', paper: '#141a24', accent: '#8fb3e6' },
+  { value: 'chayan', label: 'themeChayan', paper: '#f4efe7', accent: '#8a6a4a' },
+  { value: 'sakura', label: 'themeSakura', paper: '#fdf5f6', accent: '#c2557a' },
+  { value: 'shenlin', label: 'themeShenlin', paper: '#101713', accent: '#7cc79a' },
+]
+
 /**
- * 主题项：标题下方浅色 / 深色 / 跟随系统三个选块。
+ * 主题项：浅色 / 深色 / 跟随系统三个选块，下面再给六个色系主题。
  * 与下方语言选项连续排列。
  */
 const ThemeSetting = () => {
@@ -386,6 +448,34 @@ const ThemeSetting = () => {
           >
             {option.icon}
             {t(option.label)}
+          </button>
+        ))}
+      </div>
+      <div className={styles.paletteLabel}>{t('themePaletteLabel')}</div>
+      <div
+        role="radiogroup"
+        aria-label={t('themePaletteLabel')}
+        className={styles.paletteGrid}
+      >
+        {paletteOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={themePreference === option.value}
+            className={clsx(
+              styles.paletteOption,
+              themePreference === option.value && styles.paletteOptionSelected
+            )}
+            onClick={() => setThemePreference(option.value)}
+          >
+            <span
+              className={styles.paletteSwatch}
+              style={{ background: option.paper, '--palette-accent': option.accent } as React.CSSProperties}
+            >
+              <span className={styles.paletteAccent} />
+            </span>
+            <span className={styles.paletteName}>{t(option.label)}</span>
           </button>
         ))}
       </div>
@@ -436,14 +526,14 @@ const SettingCell = ({
   )
 }
 
-/** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/** 选文件后先选导入方式；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
 
-  const confirm = async () => {
+  const confirm = async (mode: 'merge' | 'replace') => {
     if (!file || importing.current) {
       return
     }
@@ -452,9 +542,19 @@ const useHistoryImport = () => {
     setBusy(true)
     setStatus(null)
     try {
-      const count = await importHistory(file)
-      setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
-    } catch {
+      if (mode === 'merge') {
+        const { imported, skipped } = await mergeHistoryArchive(file)
+        setStatus({ key: 'historyMerged', params: { count: imported, skipped } })
+      } else {
+        const count = await importHistory(file)
+        setStatus({
+          key: count === 1 ? 'historyImportedOne' : 'historyImported',
+          params: { count },
+        })
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[history import]', error)
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
       importing.current = false
@@ -465,7 +565,7 @@ const useHistoryImport = () => {
   return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
 }
 
-/** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
+/** 导入：合并只添加新会话，覆盖会替换本地全部会话与附件。 */
 const ImportHistory = ({
   historyImport,
   disabled,

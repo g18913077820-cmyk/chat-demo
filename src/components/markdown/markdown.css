@@ -334,7 +334,7 @@
   border-top-right-radius: var(--dsl-code-block-border-radius);
 }
 
-.md-code-block > pre {
+.md-code-block pre {
   font: var(--dsl-code-block-content-font);
   padding: 16px;
   margin: 0 !important;

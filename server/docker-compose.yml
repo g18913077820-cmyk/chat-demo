@@ -1,0 +1,16 @@
+services:
+  chat-sync:
+    image: node:22-alpine
+    container_name: chat-sync
+    restart: unless-stopped
+    working_dir: /app
+    command: node sync-server.mjs
+    environment:
+      # 改成你自己的令牌；填了之后客户端「访问令牌」也要填同样的值
+      SYNC_TOKEN: ''
+      SYNC_DATA_DIR: /data
+    volumes:
+      - ./sync-server.mjs:/app/sync-server.mjs:ro
+      - ./data:/data
+    ports:
+      - '8787:8787'

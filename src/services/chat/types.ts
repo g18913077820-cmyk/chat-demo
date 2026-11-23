@@ -73,7 +73,16 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
  */
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
-export type AssistantMessage = MessageBranch & {
+/** 收藏与自定义标签：会话和单个回答都可以标记，同步时随会话 JSON 一起传递。 */
+export type Markable = {
+  starred?: boolean
+  tags?: string[]
+  /** 自用备注，只在本机/同步端可见，不参与请求 */
+  note?: string
+}
+
+export type AssistantMessage = MessageBranch &
+  Markable & {
   id: string
   role: 'assistant'
   createdAt: number
@@ -107,8 +116,10 @@ export type AssistantMessage = MessageBranch & {
 
 export type Message = UserMessage | AssistantMessage
 
-export type Session = {
+export type Session = Markable & {
   id: string
+  /** 置顶会话排在列表最前 */
+  pinned?: boolean
   title: string
   createdAt: number
   updatedAt: number
@@ -119,7 +130,10 @@ export type Session = {
 }
 
 /** 会话列表元数据；消息只在打开会话时加载。 */
-export type SessionSummary = Pick<Session, 'id' | 'title' | 'createdAt' | 'updatedAt'>
+export type SessionSummary = Pick<
+  Session,
+  'id' | 'title' | 'createdAt' | 'updatedAt' | 'starred' | 'tags' | 'pinned'
+>
 
 /** 显式提取字段，避免将完整会话的消息带进列表。 */
 export const toSessionSummary = (session: SessionSummary): SessionSummary => ({
@@ -127,4 +141,7 @@ export const toSessionSummary = (session: SessionSummary): SessionSummary => ({
   title: session.title,
   createdAt: session.createdAt,
   updatedAt: session.updatedAt,
+  starred: session.starred,
+  tags: session.tags,
+  pinned: session.pinned,
 })

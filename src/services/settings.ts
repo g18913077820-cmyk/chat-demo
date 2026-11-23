@@ -4,19 +4,50 @@ import { normalizeLocation, type UserLocation } from './location.js'
 
 export type Locale = 'zh-CN' | 'en-US'
 
-/** 主题偏好；默认跟随系统 */
-export type ThemePreference = 'light' | 'dark' | 'system'
+/** 主题偏好；默认跟随系统。自定义主题各自固定深浅色。 */
+export type ThemePreference =
+  | 'light'
+  | 'dark'
+  | 'system'
+  | 'xuanzhi'
+  | 'qingzhu'
+  | 'yueshan'
+  | 'chayan'
+  | 'sakura'
+  | 'shenlin'
 
-/** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
+/** 可选主题集合，用于校验 localStorage 里保存的值 */
+const THEME_PREFERENCES: readonly ThemePreference[] = [
+  'light',
+  'dark',
+  'system',
+  'xuanzhi',
+  'qingzhu',
+  'yueshan',
+  'chayan',
+  'sakura',
+  'shenlin',
+]
+
+/** 正文字体：system 跟随系统，wenkai 霞鹜文楷，zhuokai 寒蝉拙楷（均内置） */
+export type FontFamily = 'system' | 'wenkai' | 'zhuokai'
+
+/** 本机设置，存 localStorage：API Key、语言、主题、字体、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
 type Settings = {
   apiKey: string | null
   locale: Locale
   themePreference: ThemePreference
+  fontFamily: FontFamily
   location: UserLocation | null
   ttsVoice: TtsVoice
   thinking: boolean
   search: boolean
   siderCollapsed: boolean
+  /** 多设备同步服务地址，对应 server/sync-server.mjs；为空表示不启用 */
+  syncUrl: string
+  /** 同步服务访问令牌，服务端设置了 SYNC_TOKEN 时必填 */
+  syncToken: string
+  syncEnabled: boolean
 }
 
 const KEYS = {
@@ -24,10 +55,14 @@ const KEYS = {
   locale: 'chat-demo:locale',
   location: 'chat-demo:location',
   themePreference: 'chat-demo:theme-preference',
+  fontFamily: 'chat-demo:font-family',
   ttsVoice: 'chat-demo:tts-voice',
   thinking: 'chat-demo:thinking',
   search: 'chat-demo:search',
   siderCollapsed: 'chat-demo:sider-collapsed',
+  syncUrl: 'chat-demo:sync-url',
+  syncToken: 'chat-demo:sync-token',
+  syncEnabled: 'chat-demo:sync-enabled',
 } as const
 
 const read = (key: string) => {
@@ -81,7 +116,7 @@ const initialLocation = (): UserLocation | null => {
 /** 未保存过时跟随系统 */
 const initialThemePreference = (): ThemePreference => {
   const saved = read(KEYS.themePreference)
-  return saved === 'light' || saved === 'dark' ? saved : 'system'
+  return THEME_PREFERENCES.find((value) => value === saved) ?? 'system'
 }
 
 /** 未保存过时使用服务端默认音色 stella（海星） */
@@ -92,10 +127,19 @@ export const useSettings = create<Settings>(() => ({
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
+  fontFamily:
+    read(KEYS.fontFamily) === 'wenkai'
+      ? 'wenkai'
+      : read(KEYS.fontFamily) === 'zhuokai'
+        ? 'zhuokai'
+        : 'system',
   ttsVoice: initialTtsVoice(),
   thinking: read(KEYS.thinking) === 'true',
   search: read(KEYS.search) === 'true',
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
+  syncUrl: read(KEYS.syncUrl) ?? '',
+  syncToken: read(KEYS.syncToken) ?? '',
+  syncEnabled: read(KEYS.syncEnabled) === 'true',
 }))
 
 export const setLocale = (locale: Locale) => {
@@ -112,6 +156,11 @@ export const setLocation = (value: UserLocation | null) => {
 export const setThemePreference = (themePreference: ThemePreference) => {
   write(KEYS.themePreference, themePreference)
   useSettings.setState({ themePreference })
+}
+
+export const setFontFamily = (fontFamily: FontFamily) => {
+  write(KEYS.fontFamily, fontFamily)
+  useSettings.setState({ fontFamily })
 }
 
 export const setTtsVoice = (ttsVoice: TtsVoice) => {
@@ -137,4 +186,28 @@ export const setSearch = (search: boolean) => {
 export const setSiderCollapsed = (siderCollapsed: boolean) => {
   write(KEYS.siderCollapsed, String(siderCollapsed))
   useSettings.setState({ siderCollapsed })
+}
+
+/** 保存同步地址；填入地址即视为启用，清空地址时一并关闭。 */
+export const setSyncUrl = (syncUrl: string) => {
+  const value = syncUrl.trim()
+  write(KEYS.syncUrl, value)
+  if (!value) {
+    write(KEYS.syncEnabled, 'false')
+    useSettings.setState({ syncUrl: value, syncEnabled: false })
+    return
+  }
+  write(KEYS.syncEnabled, 'true')
+  useSettings.setState({ syncUrl: value, syncEnabled: true })
+}
+
+export const setSyncToken = (syncToken: string) => {
+  const value = syncToken.trim()
+  write(KEYS.syncToken, value)
+  useSettings.setState({ syncToken: value })
+}
+
+export const setSyncEnabled = (syncEnabled: boolean) => {
+  write(KEYS.syncEnabled, String(syncEnabled))
+  useSettings.setState({ syncEnabled })
 }

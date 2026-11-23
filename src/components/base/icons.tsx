@@ -523,3 +523,67 @@ export const IconToastError16 = () => (
     />
   </svg>
 )
+
+export const IconStarOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M8 1.6l1.98 4.02 4.43.64-3.2 3.13.76 4.42L8 11.72l-3.97 2.09.76-4.42-3.2-3.13 4.43-.64L8 1.6z"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export const IconStarFill16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M8 1.6l1.98 4.02 4.43.64-3.2 3.13.76 4.42L8 11.72l-3.97 2.09.76-4.42-3.2-3.13 4.43-.64L8 1.6z"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export const IconTagOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M7.3 1.9H2.6a.7.7 0 00-.7.7v4.7c0 .19.07.36.2.5l6.2 6.2a.7.7 0 001 .01l4.7-4.7a.7.7 0 000-1L7.8 2.1a.7.7 0 00-.5-.2z"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinejoin="round"
+    />
+    <circle cx={4.9} cy={4.9} r={1} fill="currentColor" />
+  </svg>
+)
+
+export const IconNoteOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M3.4 1.9h9.2c.5 0 .9.4.9.9v10.4c0 .5-.4.9-.9.9H3.4a.9.9 0 01-.9-.9V2.8c0-.5.4-.9.9-.9z"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5.4 5.6h5.2M5.4 8h5.2M5.4 10.4h3"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
+export const IconPinOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M6.4 2.1h3.2M8 2.1v4.3M4.9 6.4h6.2l.5 3.1H4.4l.5-3.1zM8 9.5v4.2"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)

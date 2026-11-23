@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  height: 40px;
-  padding: 9px 6px 9px 10px;
+  min-height: 40px;
+  padding: 8px 6px 8px 10px;
   border-radius: 12px;
   font-size: 14px;
   line-height: 22px;
@@ -82,5 +82,64 @@
     padding: 0 12px;
     border-radius: 16px;
     font-size: 16px;
+  }
+}
+
+/* 收藏与标签 */
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.star {
+  display: flex;
+  flex-shrink: 0;
+  color: #e0a23c;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.tags {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tag {
+  flex-shrink: 0;
+  max-width: 84px;
+  padding: 0 5px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--dsw-specific-selector);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pin {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--dsw-alias-brand-primary);
+
+  svg {
+    width: 12px;
+    height: 12px;
   }
 }

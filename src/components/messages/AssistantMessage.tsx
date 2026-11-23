@@ -1,10 +1,24 @@
 import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
-import { memo } from 'react'
-import { IconRefreshOutline16, IconWarningOutline16 } from '../base/icons.js'
+import { memo, useState } from 'react'
+import {
+  IconNoteOutline16,
+  IconRefreshOutline16,
+  IconStarFill16,
+  IconStarOutline16,
+  IconTagOutline16,
+  IconWarningOutline16,
+} from '../base/icons.js'
 import { describeReply } from '../../services/chat/describe.js'
+import { formatFullTime, formatRoundTime } from '../../utils/format.js'
 import { canContinueReply } from '../../services/chat/reply.js'
-import { continueReply, regenerateReply } from '../../services/chat/store.js'
+import {
+  continueReply,
+  regenerateReply,
+  setMessageNote,
+  setMessageTags,
+  toggleMessageStar,
+} from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { AssistantMessage as AssistantMessageType } from '../../services/chat/types.js'
 import { openSettings } from '../settings/settingsDialogState.js'
@@ -15,6 +29,8 @@ import { SiteThumbnails } from '../search/SiteLogo.js'
 import { toggleSearchPanel, useSearchPanel } from '../search/searchPanelState.js'
 import { ReadAloudButton } from './ReadAloudButton.js'
 import { CopyButton } from './CopyButton.js'
+import { TagDialog } from './TagDialog.js'
+import { NoteDialog } from './NoteDialog.js'
 import { ReplyArea } from './ReplyArea.js'
 import { useReplyView } from './useReplyView.js'
 import {
@@ -29,6 +45,8 @@ const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 export const AssistantMessage = memo(function AssistantMessage({
   sessionId,
   message,
+  round,
+  roundAt,
   isLast,
   streaming,
   busy,
@@ -37,6 +55,9 @@ export const AssistantMessage = memo(function AssistantMessage({
 }: {
   sessionId: string
   message: AssistantMessageType
+  /** 第几轮（从 1 开始）与该轮提问时间 */
+  round?: number
+  roundAt?: number
   isLast: boolean
   streaming: boolean
   busy: boolean
@@ -54,10 +75,12 @@ export const AssistantMessage = memo(function AssistantMessage({
     .filter(Boolean)
     .join('\n\n')
   const copyText = responseText || notice?.text
+  const [tagOpen, setTagOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   const waiting = streaming && view.steps.length === 0 && !view.answer && !message.thinking
   const summaryEntry = `${message.id}-summary`
   return (
-    <div className={styles.message}>
+    <div className={styles.message} data-message-id={message.id}>
       {refused ? null : (
         <ReplyArea
           message={message}
@@ -140,6 +163,13 @@ export const AssistantMessage = memo(function AssistantMessage({
       ) : null}
       {streaming ? null : (
         <div className={styles.bottom}>
+          {round ? (
+            <span className={styles.meta} title={formatFullTime(roundAt ?? 0) ?? undefined}>
+              {t('roundLabel', { count: round })}
+              <span className={styles.metaDot}>·</span>
+              {formatRoundTime(roundAt ?? 0)}
+            </span>
+          ) : null}
           <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
           <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
             {copyText ? <CopyButton text={copyText} /> : null}
@@ -155,6 +185,30 @@ export const AssistantMessage = memo(function AssistantMessage({
                 stopReadAloud()
                 regenerateReply(sessionId, message.id)
               }}
+            />
+            <IconButton
+              icon={message.starred ? <IconStarFill16 /> : <IconStarOutline16 />}
+              tooltip={t(message.starred ? 'unfavorite' : 'favorite')}
+              tooltipPlacement="bottom"
+              className={clsx(message.starred && styles.starredIcon)}
+              disabled={busy}
+              onClick={() => toggleMessageStar(sessionId, message.id)}
+            />
+            <IconButton
+              icon={<IconTagOutline16 />}
+              tooltip={t('editTags')}
+              tooltipPlacement="bottom"
+              className={clsx((message.tags?.length ?? 0) > 0 && styles.taggedIcon)}
+              disabled={busy}
+              onClick={() => setTagOpen(true)}
+            />
+            <IconButton
+              icon={<IconNoteOutline16 />}
+              tooltip={t('note')}
+              tooltipPlacement="bottom"
+              className={clsx(message.note && styles.notedIcon)}
+              disabled={busy}
+              onClick={() => setNoteOpen(true)}
             />
           </div>
           {isLast && canContinueReply(message) ? (
@@ -173,6 +227,27 @@ export const AssistantMessage = memo(function AssistantMessage({
           ) : null}
         </div>
       )}
+      {message.note ? (
+        <div className={styles.note} onClick={() => setNoteOpen(true)}>
+          <span className={styles.noteLabel}>{t('note')}</span>
+          <span className={styles.noteText}>{message.note}</span>
+        </div>
+      ) : null}
+      {noteOpen ? (
+        <NoteDialog
+          value={message.note ?? ''}
+          onClose={() => setNoteOpen(false)}
+          onSave={(note) => setMessageNote(sessionId, message.id, note)}
+        />
+      ) : null}
+      {tagOpen ? (
+        <TagDialog
+          title={t('messageTagsTitle')}
+          value={message.tags ?? []}
+          onClose={() => setTagOpen(false)}
+          onSave={(tags) => setMessageTags(sessionId, message.id, tags)}
+        />
+      ) : null}
     </div>
   )
 })
