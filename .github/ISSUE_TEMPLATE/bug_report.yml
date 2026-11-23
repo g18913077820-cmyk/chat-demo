@@ -1,0 +1,57 @@
+name: 问题反馈
+description: 功能不正常、报错、样式错乱
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量把复现步骤写清楚，方便定位。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际现象，有报错信息或截图更好
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开设置，填写 API Key
+        2. 新建会话，发送「...」
+        3. 看到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望的结果
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及的功能
+      multiple: true
+      options:
+        - 聊天 / 消息渲染
+        - 代码块 / 思考过程折叠
+        - 刻度尺 / 收藏 / 标签 / 备注
+        - 搜索 / 会话列表
+        - 主题 / 字体
+        - 导入导出
+        - 多设备同步
+        - 其他
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      description: 浏览器与版本、操作系统、部署方式（本地 dev / 自建静态站 / GitHub Pages）
+      placeholder: Chrome 131 / macOS 15 / 自建 nginx
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: 控制台信息
+      description: 浏览器开发者工具 Console 或 Network 里的错误，注意不要贴 API Key
+      render: shell

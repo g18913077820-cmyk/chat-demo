@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 部署与同步服务说明
+    url: https://github.com/g18913077820-cmyk/chat-demo/blob/main/docs/deploy.md
+    about: 静态托管、nginx、systemd、HTTPS 与 GitHub Pages
+  - name: 同步协议与替代存储
+    url: https://github.com/g18913077820-cmyk/chat-demo/blob/main/server/README.md
+    about: 只有三个接口，想换 S3 或其他实现时看这里

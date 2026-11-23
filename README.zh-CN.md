@@ -92,6 +92,10 @@ Docker、systemd、HTTPS 反代、令牌和替代存储方案见 [server/README.
 - 只有开启同步后，会话内容才会发到你自己搭的同步服务；服务端就是一个目录，备份打包即可
 - 语音输入 / 朗读需要 HTTPS（安全上下文），HTTP 下浏览器会禁用麦克风
 
+## 参与贡献
+
+欢迎提 Issue 和 PR，开发环境、目录结构、提交前要跑的检查都写在 [CONTRIBUTING.md](CONTRIBUTING.md) 里。
+
 ## 许可证
 
 代码沿用上游的 [MIT](LICENSE)。

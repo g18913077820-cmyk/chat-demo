@@ -92,6 +92,10 @@ Docker, systemd, HTTPS reverse proxy, tokens, and storage alternatives are docum
 - Nothing leaves the browser until you enable sync, and then it only goes to your own sync server
 - Voice input and read-aloud need a secure context (HTTPS); plain HTTP disables the microphone
 
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the dev setup, project layout, and the checks to run before opening a PR.
+
 ## License
 
 Code under the upstream [MIT](LICENSE) license.
