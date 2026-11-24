@@ -526,13 +526,3 @@
   right: 3px;
   width: 30px;
 }
-
-/* 手机上展开/折叠全部：放在上一轮按钮上方 */
-.navExpand {
-  bottom: 310px;
-}
-
-.expandIcon {
-  width: 16px;
-  height: 16px;
-}

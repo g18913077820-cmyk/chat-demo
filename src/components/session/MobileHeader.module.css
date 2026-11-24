@@ -17,3 +17,31 @@
   font: var(--dsw-font-s-strong-14);
   color: var(--dsw-alias-label-primary);
 }
+
+/* 展开/折叠全部：与标题留一个字宽的空隙 */
+.expandAll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.16s ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:active {
+    background: var(--dsw-alias-bg-l2);
+  }
+}

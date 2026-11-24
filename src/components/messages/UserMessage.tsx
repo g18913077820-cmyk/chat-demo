@@ -20,6 +20,18 @@ import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
 import styles from './UserMessage.module.css'
 
+/** 超过 99 个字符的提问只展示开头，便于快速浏览 */
+const FOLD_LIMIT = 99
+
+const needsFold = (text: string) => Array.from(text).length > FOLD_LIMIT
+
+const foldQuestion = (text: string, showAll: boolean) => {
+  if (showAll || !needsFold(text)) {
+    return text
+  }
+  return `${Array.from(text).slice(0, FOLD_LIMIT).join('')}…`
+}
+
 export const UserMessage = memo(function UserMessage({
   sessionId,
   message,
@@ -47,6 +59,7 @@ export const UserMessage = memo(function UserMessage({
 }) {
   const t = useTranslate()
   const [editing, setEditing] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [draft, setDraft] = useState(message.content)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMobile = useIsMobile()
@@ -123,7 +136,22 @@ export const UserMessage = memo(function UserMessage({
         </div>
       ) : (
         <>
-          {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
+          {message.content ? (
+            <div className={styles.bubble}>
+              <span className={styles.text}>
+                {foldQuestion(message.content, showAll)}
+              </span>
+              {needsFold(message.content) ? (
+                <button
+                  type="button"
+                  className={styles.more}
+                  onClick={() => setShowAll((value) => !value)}
+                >
+                  {t(showAll ? 'showLess' : 'showAll')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <div className={styles.bottom}>
             {round ? (
               <span className={styles.meta} title={formatFullTime(askedAt ?? message.createdAt) ?? undefined}>
