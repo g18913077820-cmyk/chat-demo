@@ -101,6 +101,8 @@ export type AssistantMessage = MessageBranch &
   blocks: ReplyBlock[]
   stopReason?: StopReason
   stopDetails?: StopDetails
+  /** 回复结束时的时间戳；历史数据缺省，缺省时不展示耗时 */
+  endedAt?: number
   /** 最近一次请求的用量，续写后更新 */
   usage?: MessageUsage
   error?: {

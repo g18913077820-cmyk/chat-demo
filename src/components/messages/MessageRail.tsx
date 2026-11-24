@@ -4,6 +4,7 @@ import { useTranslate } from '../../i18n/index.js'
 import { IconStarFill16, IconTagOutline16 } from '../base/icons.js'
 import { Menu } from '../base/Menu.js'
 import styles from './MessageRail.module.css'
+import { useAnswerView } from '../../services/chat/answerView.js'
 
 type Mark = {
   id: string
@@ -79,6 +80,7 @@ export const MessageRail = ({
   const [marks, setMarks] = useState<Mark[]>([])
   const [active, setActive] = useState(0)
   /** 移动端竖屏：刻度默认收进悬浮按钮，点开才展开 */
+  const allExpanded = useAnswerView((state) => state.mode) === true
   const [opened, setOpened] = useState(false)
   const roundsRef = useRef(rounds)
   roundsRef.current = rounds
@@ -272,6 +274,38 @@ export const MessageRail = ({
         ) : null}
         <button
           type="button"
+          className={clsx(styles.navButton, styles.navExpand)}
+          aria-label={t(allExpanded ? 'collapseAll' : 'expandAll')}
+          title={t(allExpanded ? 'collapseAll' : 'expandAll')}
+          onClick={() => useAnswerView.getState().setMode(!allExpanded)}
+        >
+          <svg
+            className={styles.expandIcon}
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {allExpanded ? (
+              <path
+                d="M4 2.4 8 6.2l4-3.8M4 13.6l4-3.8 4 3.8"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ) : (
+              <path
+                d="M4 6.2 8 2.4l4 3.8M4 9.8l4 3.8 4-3.8"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </svg>
+        </button>
+        <button
+          type="button"
           className={clsx(styles.navButton, styles.navUp)}
           aria-label={t('previousRound')}
           disabled={active <= 0}
@@ -336,6 +370,20 @@ export const MessageRail = ({
           ))}
           <button
             type="button"
+            className={clsx(styles.railTop, styles.mobileTop)}
+            aria-label={t('scrollToTop')}
+            title={t('scrollToTop')}
+            onClick={() => {
+              const scroller = scrollRef.current
+              if (scroller) {
+                scroller.scrollTo({ top: 0, behavior: 'smooth' })
+              }
+            }}
+          >
+            <span className={styles.topChevron} />
+          </button>
+          <button
+            type="button"
             className={clsx(styles.railBottom, styles.mobileBottom)}
             aria-label={t('scrollToEnd')}
             title={t('scrollToEnd')}
@@ -394,6 +442,20 @@ export const MessageRail = ({
           </button>
         )
       })}
+      <button
+        type="button"
+        className={styles.railTop}
+        aria-label={t('scrollToTop')}
+        title={t('scrollToTop')}
+        onClick={() => {
+          const scroller = scrollRef.current
+          if (scroller) {
+            scroller.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }}
+      >
+        <span className={styles.topChevron} />
+      </button>
       <button
         type="button"
         className={styles.railBottom}

@@ -186,43 +186,55 @@
   opacity: 0.6;
 }
 
-/* 折叠状态的回答入口 */
-.answerToggle {
+
+
+/* 回答折叠条：与「已思考」保持同一套规格 */
+.answerTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin: 6px 0 2px;
-  padding: 8px 12px;
-  border: 1px dashed var(--dsw-alias-border-l2);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--dsw-alias-label-tertiary);
-  font: inherit;
-  font-size: 12px;
-  line-height: 18px;
-  text-align: left;
+  height: 34px;
+  margin-bottom: 2px;
+  color: var(--dsw-alias-label-secondary);
   cursor: pointer;
-  transition:
-    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
-    color var(--ds-transition-duration) var(--ds-ease-in-out);
+  user-select: none;
+  transition: color 0.2s;
 
   &:hover {
-    color: var(--dsw-alias-label-secondary);
-    border-color: var(--dsw-alias-border-l3);
-  }
-
-  svg {
-    margin-left: auto;
-    opacity: 0.7;
+    color: var(--dsw-alias-label-primary);
   }
 }
 
-.answerLabel {
-  color: var(--dsw-alias-label-secondary);
-  font-weight: 500;
+.answerIcon {
+  display: flex;
+  margin-right: 6px;
+  color: var(--dsw-alias-brand-primary);
 }
 
-.answerCount {
-  color: var(--dsw-alias-label-tertiary);
+.answerText {
+  margin-right: 6px;
+  font: var(--dsw-font-markdown-base);
+}
+
+.shimmer {
+  color: transparent;
+  background: linear-gradient(
+      90deg,
+      var(--dsw-alias-label-secondary) 0%,
+      var(--dsw-alias-label-secondary) 40%,
+      var(--dsw-alias-label-caption) 50%,
+      var(--dsw-alias-label-secondary) 60%,
+      var(--dsw-alias-label-secondary) 100%
+    )
+    0 0 / 300% 100%;
+  background-clip: text;
+  animation: answerShimmer 2s ease-out infinite;
+}
+
+@keyframes answerShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
 }

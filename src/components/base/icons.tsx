@@ -278,6 +278,18 @@ export const IconThinkOutline14 = () => (
   </svg>
 )
 
+export const IconAnswerOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M2.75 3.25h10.5c.69 0 1.25.56 1.25 1.25v6c0 .69-.56 1.25-1.25 1.25H7.6l-2.98 2.24a.6.6 0 0 1-.97-.48V11.75h-.9c-.69 0-1.25-.56-1.25-1.25v-6c0-.69.56-1.25 1.25-1.25Z"
+      stroke="currentColor"
+      strokeWidth={1.2}
+      strokeLinejoin="round"
+    />
+    <path d="M5 6.6h6M5 8.8h4" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" />
+  </svg>
+)
+
 export const IconThinkOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path

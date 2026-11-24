@@ -2,7 +2,9 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import {
+  IconAnswerOutline16,
   IconChevronDownOutline14,
+  IconChevronRightOutline14,
   IconNoteOutline16,
   IconRefreshOutline16,
   IconStarFill16,
@@ -85,6 +87,9 @@ export const AssistantMessage = memo(function AssistantMessage({
   const mode = useAnswerView((state) => state.mode)
   // 流式输出强制展开；否则按手动覆盖 → 全局模式 → 默认（最后一轮展开）
   const expanded = streaming || override === true || (override !== false && (mode ?? isLast))
+  const answerSeconds = message.endedAt
+    ? Math.max(1, Math.round((message.endedAt - message.createdAt) / 1000))
+    : null
   const session = useChatStore((state) => state.sessionCache[sessionId])
   const rounds = session ? toRounds(session) : []
   const currentRound = rounds.find((item) => item.assistant?.id === message.id)?.index ?? 0
@@ -117,28 +122,32 @@ export const AssistantMessage = memo(function AssistantMessage({
         />
       )}
       {answer ? (
-        expanded ? (
-          <Markdown
-            className="ds-assistant-message-main-content"
-            content={answer.markdown}
-            loading={streaming}
-            cacheKey={message.id}
-            disableLink={false}
-            sources={view.sources}
-          />
-        ) : (
-          <button
-            type="button"
-            className={styles.answerToggle}
-            onClick={() => useAnswerView.getState().toggle(message.id, true)}
+        <>
+          <div
+            className={styles.answerTitle}
+            onClick={() => useAnswerView.getState().toggle(message.id, !expanded)}
           >
-            <span className={styles.answerLabel}>{t('answer')}</span>
-            <span className={styles.answerCount}>
-              {t('charCount', { count: answer.markdown.length })}
+            <span className={styles.answerIcon}>
+              <IconAnswerOutline16 />
             </span>
-            <IconChevronDownOutline14 />
-          </button>
-        )
+            <span className={clsx(styles.answerText, streaming && styles.shimmer)}>
+              {streaming
+                ? t('answering')
+                : `${answerSeconds ? t('answeredIn', { count: answerSeconds }) : t('answered')} · ${t('charCount', { count: answer.markdown.length })}`}
+            </span>
+            {expanded ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
+          </div>
+          {expanded ? (
+            <Markdown
+              className="ds-assistant-message-main-content"
+              content={answer.markdown}
+              loading={streaming}
+              cacheKey={message.id}
+              disableLink={false}
+              sources={view.sources}
+            />
+          ) : null}
+        </>
       ) : null}
       {waiting ? (
         <div className={styles.waiting}>
