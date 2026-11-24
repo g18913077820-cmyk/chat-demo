@@ -54,6 +54,7 @@ export const en = {
   answeredAt: 'Answered at {time}',
   expandAll: 'Expand all',
   collapseAll: 'Collapse all',
+  showAllWithCount: 'Show all ({count} chars)',
   showAll: 'Show all',
   showLess: 'Show less',
   note: 'Note',

@@ -50,6 +50,7 @@ export const zh = {
   answeredAt: '回答于 {time}',
   expandAll: '展开全部',
   collapseAll: '折叠全部',
+  showAllWithCount: '显示全部（{count} 字）',
   showAll: '显示全部',
   showLess: '收起',
   note: '备注',

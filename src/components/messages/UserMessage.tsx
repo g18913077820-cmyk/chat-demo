@@ -147,7 +147,9 @@ export const UserMessage = memo(function UserMessage({
                   className={styles.more}
                   onClick={() => setShowAll((value) => !value)}
                 >
-                  {t(showAll ? 'showLess' : 'showAll')}
+                  {showAll
+                    ? t('showLess')
+                    : t('showAllWithCount', { count: Array.from(message.content).length })}
                 </button>
               ) : null}
             </div>
