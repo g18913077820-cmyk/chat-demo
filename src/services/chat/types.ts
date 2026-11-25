@@ -103,6 +103,8 @@ export type AssistantMessage = MessageBranch &
   stopDetails?: StopDetails
   /** 回复结束时的时间戳；历史数据缺省，缺省时不展示耗时 */
   endedAt?: number
+  /** 这一轮是否被展开看过；用于刻度尺上的绿点 */
+  viewed?: boolean
   /** 最近一次请求的用量，续写后更新 */
   usage?: MessageUsage
   error?: {

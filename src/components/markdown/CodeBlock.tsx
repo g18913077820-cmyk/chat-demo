@@ -7,7 +7,8 @@ import {
   isHighlightLoaded,
   loadHighlight,
 } from '../../services/markdown/highlight.js'
-import { IconCheckOutline16, IconCopyOutline16 } from '../base/icons.js'
+import { IconCheckOutline16, IconCopyOutline16, IconEyeOutline16 } from '../base/icons.js'
+import { useHtmlPreview } from './htmlPreviewState.js'
 import { showToast } from '../base/toastState.js'
 import { copyText } from '../../utils/clipboard.js'
 import { MermaidDiagram } from './MermaidDiagram.js'
@@ -26,6 +27,8 @@ type Limit = {
 }
 
 /** 代码块标题栏：左侧语言名，右侧展开/复制 */
+const PREVIEWABLE = new Set(['html', 'htm', 'svg'])
+
 const CodeInfoRow = ({
   code,
   infostring,
@@ -66,6 +69,20 @@ const CodeInfoRow = ({
         <span className={styles.name}>{infostring}</span>
       )}
       <div className={styles.tools}>
+        {PREVIEWABLE.has(infostring.toLowerCase()) ? (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() =>
+              useHtmlPreview.getState().open([
+                { title: infostring.toUpperCase(), code, lang: infostring.toLowerCase() },
+              ])
+            }
+          >
+            <IconEyeOutline16 />
+            <span>{t('preview')}</span>
+          </button>
+        ) : null}
         {limit ? (
           <button
             type="button"

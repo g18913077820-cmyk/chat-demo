@@ -12,6 +12,8 @@ import { closeSearchPanel } from '../search/searchPanelState.js'
 import { AssistantMessage } from './AssistantMessage.js'
 import { MessageRail, type RoundInfo } from './MessageRail.js'
 import { useAnswerView } from '../../services/chat/answerView.js'
+import { collectPreviewBlocks } from '../../services/chat/previewBlocks.js'
+import type { PreviewItem } from '../markdown/htmlPreviewState.js'
 import { IconStarFill16, IconTagOutline16 } from '../base/icons.js'
 import { Menu } from '../base/Menu.js'
 import { useTranslate } from '../../i18n/index.js'
@@ -71,6 +73,31 @@ export const MessageList = ({
       return { round, askedAt }
     })
   }, [messages])
+  // 提问行上的预览入口：只在该轮回答里确实有 html/htm/svg 时才出现
+  const lastMessageIndex = messages.length - 1
+  const previewsByUser = useMemo(() => {
+    const map = new Map<string, PreviewItem[]>()
+    for (let index = 0; index < messages.length; index += 1) {
+      const message = messages[index]
+      if (message.role !== 'user') {
+        continue
+      }
+      const reply = messages[index + 1]
+      if (reply?.role !== 'assistant' || (streaming && index + 1 === lastMessageIndex)) {
+        continue
+      }
+      const text = reply.blocks
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n\n')
+      const items = collectPreviewBlocks(text)
+      if (items.length > 0) {
+        map.set(message.id, items)
+      }
+    }
+    return map
+  }, [messages, streaming, lastMessageIndex])
+
   // 每一轮 = 一条提问 + 它后面的回答；收藏/标签取自回答，用于刻度条标记
   const rounds = useMemo<RoundInfo[]>(
     () =>
@@ -91,10 +118,12 @@ export const MessageList = ({
             starred: reply?.role === 'assistant' ? reply.starred : undefined,
             tags: reply?.role === 'assistant' ? reply.tags : undefined,
             note: reply?.role === 'assistant' ? reply.note : undefined,
+            viewed: reply?.role === 'assistant' ? reply.viewed : undefined,
+            preview: previewsByUser.has(message.id),
           },
         ]
       }),
-    [messages]
+    [messages, previewsByUser]
   )
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
@@ -224,6 +253,7 @@ export const MessageList = ({
                     message={message}
                     round={roundMeta[index]?.round}
                     askedAt={roundMeta[index]?.askedAt}
+                    answerPreviews={previewsByUser.get(message.id)}
                     retryUploadId={uploadRetryId}
                     isFirst={index === 0}
                     isLast={index === lastIndex || index === lastIndex - 1}

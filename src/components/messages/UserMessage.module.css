@@ -139,3 +139,24 @@
     text-decoration: underline;
   }
 }
+
+/* 有可预览内容时常显的眼睛按钮 */
+.previewButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  transition: color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:hover {
+    color: var(--dsw-alias-brand-primary);
+    background: var(--dsw-alias-bg-l2);
+  }
+}

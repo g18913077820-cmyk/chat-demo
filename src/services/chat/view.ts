@@ -375,21 +375,38 @@ export const getTotalThinkingSeconds = (steps: Step[], now: number) => {
 }
 
 /** 折叠区标题 */
+/** 思考内容总字数，用于在折叠标题上展示规模 */
+export const getThinkingChars = (steps: Step[]) => {
+  let total = 0
+  for (const step of steps) {
+    if (step.type !== 'thinking') {
+      continue
+    }
+    for (const block of step.blocks) {
+      total += block.thinking?.length ?? 0
+    }
+  }
+  return total
+}
+
 export const getAreaTitle = (
   view: ReplyView,
   streaming: boolean,
   now: number,
   hasResponse = view.answer !== null
 ) => {
+  const chars = getThinkingChars(view.steps)
+  const withChars = (title: string) =>
+    chars > 0 ? `${title} · ${translate('thinkingChars', { count: chars })}` : title
   if (hasResponse) {
     const count = getTotalThinkingSeconds(view.steps, now)
     if (count === null) {
-      return translate('thinkingSwitch')
+      return withChars(translate('thinkingSwitch'))
     }
-    return translate(count === 1 ? 'messageThinkDuration' : 'messageThinkDurationPlural', { count })
+    return withChars(translate(count === 1 ? 'messageThinkDuration' : 'messageThinkDurationPlural', { count }))
   }
   if (!streaming) {
-    return translate('messageThinkStopped')
+    return withChars(translate('messageThinkStopped'))
   }
   const last = view.steps.at(-1)
   if (last?.type === 'search' && last.status === 'wip') {
@@ -404,5 +421,5 @@ export const getAreaTitle = (
   if (last?.type === 'read_link' && last.links.some((link) => link.status === 'wip')) {
     return translate('readingLink')
   }
-  return translate('messageThinking')
+  return withChars(translate('messageThinking'))
 }

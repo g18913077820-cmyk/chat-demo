@@ -36,7 +36,7 @@ import { TagDialog } from './TagDialog.js'
 import { NoteDialog } from './NoteDialog.js'
 import { ExportRangeDialog } from './ExportRangeDialog.js'
 import { downloadMarkdown, roundsToMarkdown, toRounds } from '../../services/chat/exportRounds.js'
-import { useChatStore } from '../../services/chat/store.js'
+import { markMessageViewed, useChatStore } from '../../services/chat/store.js'
 import { useAnswerView } from '../../services/chat/answerView.js'
 import { showToast } from '../base/toastState.js'
 import { Menu } from '../base/Menu.js'
@@ -119,13 +119,19 @@ export const AssistantMessage = memo(function AssistantMessage({
           view={view}
           streaming={streaming}
           hasResponse={!!responseText}
+          onExpand={() => markMessageViewed(sessionId, message.id)}
         />
       )}
       {answer ? (
         <>
           <div
             className={styles.answerTitle}
-            onClick={() => useAnswerView.getState().toggle(message.id, !expanded)}
+            onClick={() => {
+              if (!expanded) {
+                markMessageViewed(sessionId, message.id)
+              }
+              useAnswerView.getState().toggle(message.id, !expanded)
+            }}
           >
             <span className={styles.answerIcon}>
               <IconAnswerOutline16 />

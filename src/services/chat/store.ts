@@ -633,6 +633,40 @@ export const toggleMessageStar = (sessionId: string, messageId: string) => {
   persist(sessionId)
 }
 
+/** 标记某轮回答已被展开查看；已标记时不重复写入。 */
+export const markMessageViewed = (sessionId: string, messageId: string) => {
+  const session = getSession(sessionId)
+  const target = session?.messages.find((message) => message.id === messageId)
+  if (!session || !target || target.role !== 'assistant' || target.viewed || get().importingHistory) {
+    return
+  }
+  updateSession(sessionId, (current) => ({
+    ...current,
+    messages: current.messages.map((message) =>
+      message.id === messageId && message.role === 'assistant'
+        ? { ...message, viewed: true }
+        : message
+    ),
+  }))
+  persist(sessionId)
+}
+
+/** 清除整个会话的已查看标记。 */
+export const clearSessionViewed = (sessionId: string) => {
+  if (get().importingHistory) {
+    return
+  }
+  updateSession(sessionId, (session) => ({
+    ...session,
+    messages: session.messages.map((message) =>
+      message.role === 'assistant' && message.viewed
+        ? { ...message, viewed: undefined }
+        : message
+    ),
+  }))
+  persist(sessionId)
+}
+
 /** 设置某条回答的备注；空字符串表示清除。 */
 export const setMessageNote = (sessionId: string, messageId: string, note: string) => {
   if (get().importingHistory) {

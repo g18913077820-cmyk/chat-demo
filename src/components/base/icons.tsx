@@ -278,6 +278,18 @@ export const IconThinkOutline14 = () => (
   </svg>
 )
 
+export const IconEyeOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M1.6 8s2.3-4.3 6.4-4.3S14.4 8 14.4 8s-2.3 4.3-6.4 4.3S1.6 8 1.6 8Z"
+      stroke="currentColor"
+      strokeWidth={1.2}
+      strokeLinejoin="round"
+    />
+    <circle cx="8" cy="8" r="2.1" stroke="currentColor" strokeWidth={1.2} />
+  </svg>
+)
+
 export const IconAnswerOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path

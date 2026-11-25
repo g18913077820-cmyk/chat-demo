@@ -2,7 +2,8 @@ import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
-import { IconEditOutline16 } from '../base/icons.js'
+import { IconEditOutline16, IconEyeOutline16 } from '../base/icons.js'
+import { useHtmlPreview, type PreviewItem } from '../markdown/htmlPreviewState.js'
 import { formatFullTime, formatRoundTime } from '../../utils/format.js'
 import { getFileViewType, isImage } from '../../services/attachments.js'
 import { editMessage, retryUpload } from '../../services/chat/store.js'
@@ -40,6 +41,7 @@ export const UserMessage = memo(function UserMessage({
   isLast,
   round,
   askedAt,
+  answerPreviews,
   busy,
   versions,
   onSelectVersion,
@@ -49,6 +51,8 @@ export const UserMessage = memo(function UserMessage({
   /** 第几轮（从 1 开始）与该轮提问时间 */
   round?: number
   askedAt?: number
+  /** 这一轮回答里可预览的 HTML/SVG 片段 */
+  answerPreviews?: PreviewItem[]
   /** 回答因补传附件失败可重试时为该回答 id */
   retryUploadId: string | null
   isFirst: boolean
@@ -160,7 +164,20 @@ export const UserMessage = memo(function UserMessage({
                 {t('roundLabel', { count: round })}
                 <span className={styles.metaDot}>·</span>
                 {formatRoundTime(askedAt ?? message.createdAt)}
+                <span className={styles.metaDot}>·</span>
+                {t('charCount', { count: Array.from(message.content).length })}
               </span>
+            ) : null}
+            {answerPreviews?.length ? (
+              <button
+                type="button"
+                className={styles.previewButton}
+                aria-label={t('preview')}
+                title={t('preview')}
+                onClick={() => useHtmlPreview.getState().open(answerPreviews)}
+              >
+                <IconEyeOutline16 />
+              </button>
             ) : null}
             <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
               {message.content ? <CopyButton text={message.content} /> : null}

@@ -58,11 +58,13 @@ export const ReplyArea = memo(function ReplyArea({
   view,
   streaming,
   hasResponse,
+  onExpand,
 }: {
   message: AssistantMessage
   view: ReplyView
   streaming: boolean
   hasResponse: boolean
+  onExpand?: () => void
 }) {
   useTranslate()
   // 思考过程默认折叠：历史消息直接收起，新回答在思考阶段展开、思考结束立刻收起。
@@ -94,7 +96,17 @@ export const ReplyArea = memo(function ReplyArea({
   return (
     <div className={styles.area}>
       {title ? (
-        <div className={styles.title} onClick={() => setOpen((value) => !value)}>
+        <div
+          className={styles.title}
+          onClick={() =>
+            setOpen((value) => {
+              if (!value) {
+                onExpand?.()
+              }
+              return !value
+            })
+          }
+        >
           <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
             <IconThinkOutline16 />
           </span>

@@ -20,6 +20,10 @@ export type RoundInfo = {
   starred?: boolean
   tags?: string[]
   note?: string
+  /** 展开看过这一轮 */
+  viewed?: boolean
+  /** 回答里有可预览的 HTML/SVG */
+  preview?: boolean
 }
 
 const preview = (round: RoundInfo): string => {
@@ -332,6 +336,8 @@ export const MessageRail = ({
               <span className={styles.mobileBar} />
               {round.tags?.length ? <span className={styles.mobileTag} /> : null}
               {round.note ? <span className={styles.mobileNote} /> : null}
+              {round.viewed ? <span className={styles.mobileViewed} /> : null}
+              {round.preview ? <span className={styles.mobilePreview} /> : null}
             </button>
           ))}
           <button
@@ -405,6 +411,8 @@ export const MessageRail = ({
             <span className={styles.bar} />
             {round.tags?.length ? <span className={styles.tickTag} /> : null}
             {round.note ? <span className={styles.tickNote} /> : null}
+            {round.viewed ? <span className={styles.tickViewed} /> : null}
+            {round.preview ? <span className={styles.tickPreview} /> : null}
           </button>
         )
       })}

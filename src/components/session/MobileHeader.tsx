@@ -1,4 +1,11 @@
-import { IconMenuOutline20, IconNewChatOutline20 } from '../base/icons.js'
+import {
+  IconMenuOutline20,
+  IconNewChatOutline20,
+  IconEllipsisOutline16,
+  IconCheckOutline16,
+} from '../base/icons.js'
+import { Menu } from '../base/Menu.js'
+import { clearSessionViewed } from '../../services/chat/store.js'
 import { useAnswerView } from '../../services/chat/answerView.js'
 import { useTranslate } from '../../i18n/index.js'
 import { newChat } from '../../services/chat/store.js'
@@ -7,7 +14,7 @@ import { openMobileSider } from '../sider/mobileSiderState.js'
 import styles from './MobileHeader.module.css'
 
 /** 移动端顶栏：左侧菜单打开侧边栏；会话页再显示标题与开启新对话 */
-export const MobileHeader = ({ title }: { title?: string }) => {
+export const MobileHeader = ({ title, sessionId }: { title?: string; sessionId?: string }) => {
   const t = useTranslate()
   const allExpanded = useAnswerView((state) => state.mode) === true
   return (
@@ -49,6 +56,29 @@ export const MobileHeader = ({ title }: { title?: string }) => {
               )}
             </svg>
           </button>
+          {sessionId ? (
+            <Menu
+              options={[
+                {
+                  key: 'clear-viewed',
+                  label: t('clearViewed'),
+                  icon: <IconCheckOutline16 />,
+                  onSelect: () => clearSessionViewed(sessionId),
+                },
+              ]}
+            >
+              {({ toggle }) => (
+                <button
+                  type="button"
+                  className={styles.expandAll}
+                  aria-label={t('more')}
+                  onClick={toggle}
+                >
+                  <IconEllipsisOutline16 />
+                </button>
+              )}
+            </Menu>
+          ) : null}
           <IconButton
             size="xl"
             tone="primary"

@@ -3,7 +3,10 @@ import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
 import type { Session } from '../../services/chat/types.js'
 import { ChatInput } from '../chatInput/ChatInput.js'
-import { IconChevronDownOutline14 } from '../base/icons.js'
+import { IconChevronDownOutline14, IconEllipsisOutline16, IconCheckOutline16 } from '../base/icons.js'
+import { Menu } from '../base/Menu.js'
+import { IconButton } from '../base/IconButton.js'
+import { clearSessionViewed } from '../../services/chat/store.js'
 import { useAnswerView } from '../../services/chat/answerView.js'
 import { MessageList } from '../messages/MessageList.js'
 import { MobileHeader } from './MobileHeader.js'
@@ -26,7 +29,7 @@ export const SessionView = ({
   return (
     <div className={styles.view}>
       {isMobile ? (
-        <MobileHeader title={title} />
+        <MobileHeader title={title} sessionId={session.id} />
       ) : (
         <div className={styles.header}>
           <div className={clsx(styles.title, siderCollapsed && styles.withCollapsedSider)}>
@@ -40,6 +43,25 @@ export const SessionView = ({
             {t(expandedAll ? 'collapseAll' : 'expandAll')}
             <IconChevronDownOutline14 />
           </button>
+          <Menu
+            options={[
+              {
+                key: 'clear-viewed',
+                label: t('clearViewed'),
+                icon: <IconCheckOutline16 />,
+                onSelect: () => clearSessionViewed(session.id),
+              },
+            ]}
+          >
+            {({ toggle }) => (
+              <IconButton
+                icon={<IconEllipsisOutline16 />}
+                tooltip={t('more')}
+                tooltipPlacement="bottom"
+                onClick={toggle}
+              />
+            )}
+          </Menu>
         </div>
       )}
       <MessageList

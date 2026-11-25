@@ -526,3 +526,39 @@
   right: 3px;
   width: 30px;
 }
+
+/* 已查看：绿色小圆点，紧跟在标签/备注标记之后 */
+.tickViewed {
+  position: absolute;
+  right: 21px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #35b37e;
+}
+
+.mobileViewed {
+  width: 4px;
+  height: 4px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: #35b37e;
+}
+
+/* 有 HTML/SVG 预览：绿色小点右侧的红色小点 */
+.tickPreview {
+  position: absolute;
+  right: 26px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #e05b4a;
+}
+
+.mobilePreview {
+  width: 4px;
+  height: 4px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: #e05b4a;
+}
